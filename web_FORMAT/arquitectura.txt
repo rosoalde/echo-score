@@ -1,0 +1,14 @@
+proyecto_web
+	- Web_Proyecto
+		- main.py
+		- tasks.py
+		- celery_app.py
+		- __init__.py
+		- static/
+		- templates/
+		- ...
+	- docker-componse.yml
+	- dockerfile
+
+
+(el init está vacio)

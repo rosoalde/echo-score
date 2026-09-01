@@ -1,0 +1,446 @@
+
+
+1) En el análisis faltaría poder ser fiuler
+
+2) En Administración falta poner los proyectos, en qué estados están, etc (todo de la bbdd)
+
+3) faltan poner las tareas, los logs, etcç
+
+4) En la web principal de los usuarios falta crear logs de las acciones de los usuarios
+-------------------------------------------------------------------------------------------
+
+Lo que quieres montar es básicamente una plataforma de **observabilidad**. En lugar de programar tú las gráficas, lo normal es utilizar un stack como este:
+
+```
+                    +----------------+
+                    |    Grafana     |
+                    +-------+--------+
+                            |
+                    +-------v--------+
+                    |   Prometheus   |
+                    +---+----+-------+
+                        |    |
+        +---------------+    +----------------+
+        |                                    |
++-------v------+                     +-------v--------+
+| cAdvisor     |                     | Node Exporter  |
+| (Docker)     |                     | (Host Linux)   |
++-------+------+                     +-------+--------+
+        |                                    |
+        |                                    |
++-------v------------------------------+      |
+| Docker Containers (api, worker...)   |      |
++--------------------------------------+      |
+                                               |
+                                      +--------v---------+
+                                      | DCGM Exporter    |
+                                      | (GPU NVIDIA)     |
+                                      +------------------+
+```
+
+Con esto consigues prácticamente todo sin escribir una línea de código.
+
+---
+
+# Qué obtiene cada componente
+
+## Node Exporter
+
+Métricas del servidor.
+
+* CPU (%)
+* RAM usada/libre
+* Swap
+* Disco
+* I/O disco
+* Caché
+* Buffers
+* Red
+* Número de procesos
+* Load Average
+* Temperatura (si existe)
+* Filesystem
+* inode
+
+---
+
+## cAdvisor
+
+Métricas de Docker.
+
+Para cada contenedor:
+
+* CPU
+* Memoria
+* Límite de memoria
+* I/O
+* Red
+* PID
+* número de procesos
+* uso del filesystem
+* reinicios
+
+Por ejemplo podrás ver:
+
+```
+api
+worker
+postgres
+redis
+flower
+admin-api
+```
+
+cada uno con su gráfica.
+
+---
+
+## DCGM Exporter (NVIDIA)
+
+Si tienes GPU NVIDIA.
+
+Obtienes:
+
+* VRAM usada
+* VRAM libre
+* utilización GPU
+* utilización memoria GPU
+* temperatura
+* potencia (W)
+* frecuencia
+* PCIe
+* Tensor Core
+* SM utilization
+
+Es muchísimo mejor que hacer un `nvidia-smi` cada segundo.
+
+---
+
+# Para el LLM fuera de Docker
+
+No pasa absolutamente nada.
+
+El exporter de NVIDIA mira la GPU completa.
+
+Verás:
+
+```
+GPU Memory
+
+LLM
+Docker
+Otros procesos
+```
+
+Además puedes saber qué proceso ocupa memoria.
+
+Incluso puedes sacar métricas de
+
+```
+vllm
+
+python
+
+pid
+
+GPU utilizada
+```
+
+---
+
+# Si quieres saber únicamente cuánto consume el LLM
+
+Puedes usar además:
+
+```
+nvidia-smi pmon
+```
+
+o
+
+```
+nvtop
+```
+
+pero normalmente DCGM ya ofrece prácticamente todo.
+
+---
+
+# Prometheus
+
+Prometheus sólo almacena series temporales.
+
+Cada pocos segundos pregunta a
+
+```
+Node Exporter
+
+cAdvisor
+
+DCGM Exporter
+
+tu API
+```
+
+y guarda todo.
+
+---
+
+# Grafana
+
+Grafana hace las gráficas.
+
+Por ejemplo:
+
+```
+CPU
+
+█████████████
+```
+
+```
+RAM
+
+███████████████
+```
+
+```
+GPU
+
+█████████
+```
+
+```
+VRAM
+
+████████████████████
+```
+
+```
+Disco
+
+██████
+```
+
+```
+Threads
+
+███████
+```
+
+---
+
+# También puedes monitorizar FastAPI
+
+Con
+
+```
+prometheus-fastapi-instrumentator
+```
+
+tendrás
+
+* peticiones/segundo
+* tiempo medio
+* percentil 95
+* percentil 99
+* errores 500
+* errores 404
+* endpoints más usados
+
+Sin hacer prácticamente nada.
+
+---
+
+# Celery
+
+Existe exporter.
+
+Obtienes
+
+* tareas ejecutadas
+* tiempo medio
+* cola
+* workers activos
+* workers muertos
+* retries
+
+---
+
+# PostgreSQL
+
+Con postgres_exporter.
+
+Obtienes
+
+* conexiones
+* consultas
+* locks
+* cache hit
+* tiempo consultas
+* WAL
+* checkpoints
+
+---
+
+# Redis
+
+Con redis_exporter.
+
+Obtienes
+
+* memoria
+* hits
+* misses
+* conexiones
+* comandos/s
+
+---
+
+# Número de hilos
+
+Puedes verlo de varias maneras.
+
+Node Exporter:
+
+```
+node_procs_running
+
+node_processes
+```
+
+cAdvisor:
+
+```
+container_tasks_state
+
+container_threads
+```
+
+o desde tu aplicación con `psutil` si quieres el detalle del proceso Python.
+
+---
+
+# Si además quieres saber cuánto consume cada petición al LLM
+
+Aquí es donde mucha gente se queda corta.
+
+Puedes añadir un middleware en FastAPI que registre:
+
+```
+Inicio petición
+
+↓
+
+CPU
+
+↓
+
+RAM
+
+↓
+
+GPU
+
+↓
+
+Tiempo
+
+↓
+
+tokens entrada
+
+↓
+
+tokens salida
+
+↓
+
+Fin
+```
+
+Y guardar algo como:
+
+| Prompt  | CPU | GPU  | RAM    | Tiempo | Tokens |
+| ------- | --- | ---- | ------ | ------ | ------ |
+| resumen | 43% | 9 GB | 2.4 GB | 7 s    | 512    |
+
+Eso luego Grafana lo representa perfectamente.
+
+---
+
+# Añadir los servicios al `docker-compose.yml`
+
+Podrías ampliar tu `docker-compose` con algo parecido a esto:
+
+```yaml
+prometheus:
+  image: prom/prometheus
+  volumes:
+    - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+  ports:
+    - "9090:9090"
+
+grafana:
+  image: grafana/grafana
+  ports:
+    - "3000:3000"
+  volumes:
+    - grafana-storage:/var/lib/grafana
+
+node-exporter:
+  image: prom/node-exporter
+  network_mode: host
+  pid: host
+
+cadvisor:
+  image: gcr.io/cadvisor/cadvisor:latest
+  ports:
+    - "8080:8080"
+  volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:ro
+    - /sys:/sys:ro
+    - /var/lib/docker:/var/lib/docker:ro
+
+dcgm-exporter:
+  image: nvcr.io/nvidia/k8s/dcgm-exporter:latest
+  runtime: nvidia
+  ports:
+    - "9400:9400"
+
+redis-exporter:
+  image: oliver006/redis_exporter
+  environment:
+    REDIS_ADDR: redis://redis:6379
+  ports:
+    - "9121:9121"
+
+postgres-exporter:
+  image: prometheuscommunity/postgres-exporter
+  environment:
+    DATA_SOURCE_NAME: "postgresql://webuser:webpass@db:5432/webdb?sslmode=disable"
+  ports:
+    - "9187:9187"
+
+volumes:
+  grafana-storage:
+```
+
+---
+
+## Mi recomendación
+
+Para un sistema como el tuyo (FastAPI + Celery + PostgreSQL + Redis + vLLM), el stack más completo y fácil de mantener es:
+
+* **Prometheus** para recopilar métricas.
+* **Grafana** para dashboards y alertas.
+* **Node Exporter** para CPU, RAM, disco, red y procesos del host.
+* **cAdvisor** para métricas de cada contenedor Docker.
+* **DCGM Exporter** para GPU NVIDIA y VRAM.
+* **Postgres Exporter** para la base de datos.
+* **Redis Exporter** para Redis.
+* **Instrumentación de FastAPI** (por ejemplo con `prometheus-fastapi-instrumentator`) para tiempos de respuesta y uso de los endpoints.
+* **Métricas de Celery** mediante un exporter o instrumentación específica.
+
+Con este conjunto tendrás una visión muy completa del consumo "informático": CPU, memoria, caché, disco, GPU, VRAM, red, procesos, hilos, rendimiento de la API, colas de Celery y estado de la base de datos, todo integrado en dashboards profesionales de Grafana. Además, puedes crear un dashboard específico para tus ejecuciones del LLM, correlacionando tiempos de inferencia, uso de GPU, memoria y número de tokens procesados.

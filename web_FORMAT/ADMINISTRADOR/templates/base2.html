@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Administrador</title>
+
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+<div class="sidebar">
+
+    <h2>Admin</h2>
+
+    <a href="/">Dashboard</a>
+
+    <a href="/users">Usuarios</a>
+
+    <a href="/jobs">Trabajos</a>
+
+    <a href="/queues">Colas</a>
+
+    <a href="/workers">Workers</a>
+
+    <a href="/logs">Logs</a>
+
+    <a href="/settings">Configuración</a>
+
+</div>
+
+<div class="content">
+
+{% block content %}
+{% endblock %}
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1388 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard resultados{% endblock %}
+
+{% block content %}
+{% set ENABLE_DOWNLOAD = false %}
+{% set FEATURES = {
+"prediccion": false,
+"alertas": false
+} %}
+<div class="container-fluid">
+
+    <!-- ===================== -->
+    <!-- BARRA SUPERIOR -->
+    <!-- ===================== -->
+    <select id="projectSelect" class="d-none">
+        <option value="">--</option>
+    </select>
+    <div
+        class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2 text-primary fw-bold">Dashboard resultados</h1>
+    </div>
+
+
+
+    <!-- ===================== -->
+    <!-- CONTENIDO PRINCIPAL -->
+    <!-- ===================== -->
+    <div class="row">
+
+        <!-- COLUMNA IZQUIERDA (DASHBOARD) -->
+        <div class="col-lg-8">
+
+            <!-- ENCABEZADO DE CONTEXTO DEL TEMA -->
+            <div id="projectHeader" class="mb-4 d-none">
+                <div class="card border-0 shadow-sm bg-white rounded-4">
+                    <div class="card-body p-4">
+                        <div class="mb-2">
+                            <span
+                                class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fw-bold"
+                                style="font-size:0.7rem;">
+                                <i class="bi bi-folder2 me-1"></i> PROYECTO: <span id="displayProjectName">--</span>
+                            </span>
+                        </div>
+                        <h3 id="displayTemaName" class="fw-bold text-dark mb-3"
+                            style="text-transform:uppercase;font-size:1.5rem;letter-spacing:0.5px;line-height:1.2;">
+                        </h3>
+                        <div class="pt-3 border-top">
+                            <div class="d-flex align-items-center mb-2 text-muted">
+                                <i class="bi bi-stars me-2 text-info"></i>
+                                <h6 class="small text-uppercase fw-bold mb-0" style="letter-spacing:1px;">Contexto del
+                                    Análisis</h6>
+                            </div>
+                            <p id="displayThemeDescription" class="text-secondary mb-0"
+                                style="font-size:1rem;line-height:1.6;max-width:850px;"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Placeholder de carga -->
+            <div id="resultsPlaceholder" class="text-center p-5">
+                <div class="text-muted">
+                    <i class="bi bi-bar-chart-line display-1"></i>
+                    <p class="mt-3">Selecciona un proyecto arriba para cargar el dashboard.</p>
+                </div>
+            </div>
+
+            <div id="chartsContainer" class="d-none">
+
+                <!-- ========================================== -->
+                <!-- NAVEGACIÓN POR PESTAÑAS                    -->
+                <!-- ========================================== -->
+                <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm border" id="dashboardTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold" id="volumen-tab" data-bs-toggle="tab"
+                            data-bs-target="#tab-volumen" type="button" role="tab">
+                            <i class="bi bi-file-post me-2"></i>Publicaciones
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold" id="sentimiento-tab" data-bs-toggle="tab"
+                            data-bs-target="#tab-sentimiento" type="button" role="tab">
+                            <i class="bi bi-lightning-charge me-2"></i>ECHO score
+                        </button>
+                    </li>
+                    <!-- ========================================== -->
+                    <!-- PESTAÑAS SILENCIADAS TEMPORALMENTE INICIO  -->
+                    <!-- ========================================== -->
+                    <!--
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold" id="contenido-tab" data-bs-toggle="tab" data-bs-target="#tab-contenido" type="button" role="tab">
+                            <i class="bi bi-chat-left-quote me-2"></i>Temas y nubes
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold" id="grafo-tab"
+                                data-bs-toggle="tab"
+                                data-bs-target="#tab-grafo"
+                                type="button" role="tab">
+                            <i class="bi bi-diagram-3 me-2"></i>Red de narrativas
+                        </button>
+                    </li>
+                    -->
+                    <!-- ========================================== -->
+                    <!-- PESTAÑAS SILENCIADAS TEMPORALMENTE FIN     -->
+                    <!-- ========================================== -->
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold" id="lexico-tab" data-bs-toggle="tab"
+                            data-bs-target="#tab-lexico" type="button" role="tab">
+                            <i class="bi bi-cloud-fill me-2"></i>Vocabulario y narrativas
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- ========================================== -->
+                <!-- CONTENIDO DE LAS PESTAÑAS                  -->
+                <!-- ========================================== -->
+                <div class="tab-content" id="dashboardTabsContent">
+
+                    <!-- ============================================================ -->
+                    <!-- PESTAÑA 1: PUBLICACIONES                                     -->
+                    <!-- ============================================================ -->
+                    <div class="tab-pane fade show active" id="tab-volumen" role="tabpanel">
+                        <div class="bg-light p-3 rounded-3 mb-4 border-start border-4 border-primary shadow-sm">
+                            <h5 class="text-primary fw-bold mb-1">
+                                <i class="bi bi-file-post me-2"></i> Análisis de publicaciones
+                            </h5>
+                            <p class="text-muted small mb-0">
+                                Aquí puedes ver el número de publicaciones analizadas: posts de Reddit, Bluesky y
+                                Telegram y vídeos de YouTube.
+                                Para cada <strong>publicación</strong>, la IA identifica la postura, el tema principal y
+                                le asigna una polaridad (positiva, negativa o neutra). Los comentarios no se cuentan
+                                como publicaciones, aunque sí se utilizan para calcular el ECHO Score.
+                            </p>
+                        </div>
+                        <!-- ===================== -->
+                        <!-- FILTRO GEOGRÁFICO -->
+                        <!-- ===================== -->
+
+                        <div class="col-12 mb-4">
+                            <div class="p-3 bg-light border border-primary rounded-3">
+                                <label class="form-label fw-bold small text-uppercase text-primary mb-2">
+                                    📍 Filtro por Ámbito Geográfico
+                                </label>
+                                <div class="input-group shadow-sm">
+                                    <span class="input-group-text bg-primary text-white">
+                                        <i class="bi bi-geo-alt-fill"></i>
+                                    </span>
+                                    <input type="text" id="geoFilterInput" class="form-control" autocomplete="off"
+                                        placeholder="Ej: Valencia, Madrid, Argentina">
+                                    <button data-requires-llm disabled
+                                        class="btn btn-primary fw-bold {% if user.role not in ['admin', 'analista'] %} disabled {% endif %}"
+                                        id="btnApplyFilter" {% if user.role not in ['admin', 'analista' ] %} disabled {%
+                                        endif %}>
+                                        APLICAR FILTRO
+                                    </button>
+                                    <button
+                                        class="btn btn-outline-secondary {% if user.role not in ['admin', 'analista'] %} disabled {% endif %}"
+                                        id="btnClearFilter" {% if user.role not in ['admin', 'analista' ] %} disabled {%
+                                        endif %}>
+                                        LIMPIAR
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- KPI + Evolución temporal -->
+                        <div class="row g-4 mb-4 align-items-stretch">
+                            <div class="col-md-4 d-flex">
+                                <div
+                                    class="p-4 rounded-4 bg-primary-subtle border border-primary-subtle shadow-sm text-center w-100 d-flex flex-column justify-content-center">
+                                    <h6 class="text-primary text-uppercase small fw-bold mb-3">Total publicaciones
+                                        analizadas</h6>
+                                    <h1 id="kpiTotal" class="display-1 fw-bold text-primary mb-2">0</h1>
+                                    <p class="text-primary-emphasis small mb-0">
+                                        <i class="bi bi-filter-circle-fill me-1"></i>
+                                        Número de posts y vídeos clasificados como pertinentes para el tema de búsqueda.
+                                        (Los comentarios se analizan como respuestas a estas publicaciones.)
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-md-8 d-flex">
+                                <div class="p-3 border rounded-3 bg-white h-100 w-100">
+                                    <h6 class="text-dark fw-bold small text-uppercase mb-3">
+                                        <i class="bi bi-graph-up me-2 text-primary"></i>Evolución de actividad en el
+                                        tiempo
+                                    </h6>
+                                    <div style="height:200px;">
+                                        <canvas id="tendenciaGlobalVolChart"></canvas>
+                                    </div>
+                                    <p class="text-muted small mt-2 mb-3 text-center">
+                                        Número de publicaciones por día. Los picos pueden asociarse a eventos o noticias
+                                        relevantes.
+                                    </p>
+                                    <div id="evolucionPorRedContainer" class="d-none"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Distribución por plataforma + Comparativa -->
+                        <div class="row g-4">
+                            <div class="col-md-4">
+                                <div class="p-3 border rounded-3 bg-white h-100">
+                                    <h6 class="text-muted text-uppercase small fw-bold mb-4 text-center">Publicaciones
+                                        por plataforma</h6>
+                                    <div style="height:250px;position:relative;">
+                                        <canvas id="volumenRedChart"></canvas>
+                                    </div>
+                                    <p class="text-muted small mt-3 mb-0 text-center">
+                                        Porcentaje de publicaciones originales en cada red social.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="p-3 border rounded-3 bg-white h-100">
+                                    <h6 class="text-dark fw-bold small text-uppercase mb-3">
+                                        <i class="bi bi-funnel me-2 text-primary"></i>Publicaciones y comentarios por
+                                        plataforma
+                                    </h6>
+                                    <div style="height:250px;">
+                                        <canvas id="tendenciaRedVolChart"></canvas>
+                                    </div>
+                                    <p class="text-muted small mt-3 mb-0 text-center">
+                                        Número total de publicaciones y comentarios extraídos por cada red social.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- /tab-volumen -->
+
+
+                    <!-- ============================================================ -->
+                    <!-- PESTAÑA 2: ECHO score (ECHO score)                      -->
+                    <!-- ============================================================ -->
+                    <div class="tab-pane fade" id="tab-sentimiento" role="tabpanel">
+
+                        <!-- Cabecera explicativa mejorada -->
+                        <div class="bg-light p-4 rounded-4 mb-4 border-start border-4 border-success shadow-sm">
+                            <h5 class="text-success fw-bold mb-3">
+                                <i class="bi bi-lightning-charge me-2"></i> ECHO score: Esfuerzo, Conversación y Huella
+                                de Opinión
+                            </h5>
+
+                            <div class="row g-4">
+                                <div class="col-md-7">
+                                    <p class="text-dark mb-2">
+                                        El ECHO Score intenta medir qué argumentos están teniendo más repercusión en la
+                                        conversación digital y si esa repercusión es positiva o negativa. Para
+                                        calcularlo, tiene en cuenta tres dimensiones:
+                                    </p>
+                                    <ul class="text-muted small ps-3">
+                                        <li><strong>Esfuerzo social:</strong> da más peso a las interacciones que
+                                            requieren una mayor implicación o que son menos frecuentes. Por ejemplo,
+                                            comentar o compartir puede tener más valor que marcar «me gusta».
+                                        </li>
+                                        <li><strong>Influencia y alcance:</strong> Tiene en cuenta a cuántas personas
+                                            puede alcanzar una publicación. Para ello, su peso se ajusta según el número
+                                            de seguidores y visualizaciones, evitando que las cuentas con audiencias muy
+                                            grandes dominen por completo el resultado.</li>
+                                        <li><strong>Validación de la comunidad:</strong> La puntuación no depende solo
+                                            de la opinión del autor, sino también de si los comentarios la apoyan, la
+                                            rechazan o expresan una posición diferente.
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <!-- NUEVA JERARQUÍA VISUAL DE MÉTRICAS -->
+                                <div class="col-md-5 border-start ps-4">
+                                    <h6 class="fw-bold small text-uppercase text-secondary mb-3">Niveles de análisis:
+                                    </h6>
+                                    <div class="vstack gap-2">
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="bi bi-chat-square-text text-success"></i>
+                                            <div class="small"><strong>Nivel publicación:</strong> Polarización interna.
+                                                ¿Qué porcentaje de su potencial de impacto fue positivo?</div>
+                                        </div>
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="bi bi-graph-up text-info"></i>
+                                            <div class="small"><strong>Trayectoria diaria:</strong> Clima de opinión.
+                                                Media aritmética de los valores ECHO score pct de todos los hilos
+                                                publicados cada día.</div>
+                                        </div>
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="bi bi-share text-primary"></i>
+                                            <div class="small"><strong>Nivel red:</strong> Balance de poder. Polaridad
+                                                neta de la plataforma.</div>
+                                        </div>
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="bi bi-globe2 text-dark"></i>
+                                            <div class="small"><strong>ECHO Global:</strong> Síntesis final ponderada
+                                                por el volumen de participación de cada red.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Interpretación rápida -->
+                            <div class="d-flex gap-1 flex-wrap small border-top pt-2 mt-2 align-items-center"
+                                style="white-space: nowrap; font-size: 0.78rem;">
+                                <span class="text-muted fw-bold"><i
+                                        class="bi bi-info-circle me-1"></i>Interpretación:</span>
+                                <span><span class="badge" style="background:#0a7c4a;">> 80%</span> Repercusión muy
+                                    positiva
+                                    alta</span>
+                                <span><span class="badge" style="background:#0eb26c;">60-80%</span> Repercusión
+                                    positiva</span>
+                                <span><span class="badge" style="background:#adb5bd;color:#333;">40-60%</span>
+                                    Repercusión equilibrada / polarizada</span>
+                                <span><span class="badge" style="background:#f28c8c;color:#6b1e1e;">20-40%</span>
+                                    Repercusión negativa</span>
+                                <span><span class="badge" style="background:#d8535f;">
+                                        < 20%</span> Repercusión muy negativa
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- ===================== -->
+                        <!-- FILTRO GEOGRÁFICO -->
+                        <!-- ===================== -->
+                        <div class="col-12 mb-4">
+                            <div class="p-3 bg-light border border-success rounded-3">
+                                <label
+                                    class="form-label data-requires-llm disabled fw-bold small text-uppercase text-success mb-2">
+                                    📍 Filtro por Ámbito Geográfico
+                                </label>
+                                <div class="input-group shadow-sm">
+                                    <span class="input-group-text bg-success text-white">
+                                        <i class="bi bi-geo-alt-fill"></i>
+                                    </span>
+                                    <input type="text" id="geoFilterInput2" class="form-control" autocomplete="off"
+                                        placeholder="Ej: Valencia, Madrid, Argentina">
+                                    <button class="btn btn-success data-requires-llm disabled
+                                     fw-bold {% if user.role not in ['admin', 'analista'] %}disabled{% endif %}"
+                                        id="btnApplyFilter2" {% if user.role not in ['admin', 'analista' ] %}disabled{%
+                                        endif %}>
+                                        APLICAR FILTRO
+                                    </button>
+                                    <button
+                                        class="btn btn-outline-secondary {% if user.role not in ['admin', 'analista'] %}disabled{% endif %}"
+                                        id="btnClearFilter2" {% if user.role not in ['admin', 'analista' ] %}disabled{%
+                                        endif %}>
+                                        LIMPIAR
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ... resto de KPIs ... -->
+
+                        <!-- ── KPIs ── -->
+                        <div class="row g-3 mb-4">
+
+                            <!-- KPI GLOBAL -->
+                            <div class="col-12 col-md-3">
+
+                                <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 justify-content-flex-start"
+                                    style="border-top:4px solid #da56b9 !important; justify-content:flex-start;">
+
+                                    <!-- TÍTULO -->
+                                    <div class="text-muted text-uppercase fw-bold mb-2"
+                                        style="font-size:.72rem; letter-spacing:.06em; line-height:1.3; min-height:34px;">
+
+                                        <i class="bi bi-globe2 me-1"></i>
+                                        ECHO Global
+
+                                    </div>
+
+                                    <!-- VALOR -->
+                                    <div id="kpiScoreopGlobal" class="fw-bold lh-1 mt-2 mb-2"
+                                        style="font-size:2.2rem; color:#6f42c1;">
+
+                                        --
+
+                                    </div>
+
+                                    <!-- TEXTO -->
+                                    <div id="scoreopInterpretacion" class="text-muted mt-2 mx-auto"
+                                        style="font-size:.82rem; max-width:90%; line-height:1.5;">
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <!-- KPI POSICIÓN MEDIA -->
+                            <div class="col-12 col-md-3">
+
+                                <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 justify-content-flex-start"
+                                    style="border-top:4px solid #586138 !important; justify-content:flex-start;">
+
+                                    <!-- TÍTULO -->
+                                    <div class="text-muted text-uppercase fw-bold mb-2"
+                                        style="font-size:.72rem; letter-spacing:.06em; line-height:1.3; min-height:34px;">
+
+                                        ECHO Promedio<br>(Representatividad)
+
+                                    </div>
+
+                                    <!-- VALOR -->
+                                    <div id="kpiScoreopMedia" class="fw-bold lh-1 mt-2 mb-2"
+                                        style="font-size:2.2rem; color:#97a3b3;">
+
+                                        --
+
+                                    </div>
+
+                                    <!-- TEXTO -->
+                                    <div class="text-muted mx-auto"
+                                        style="font-size:.82rem; line-height:1.5; max-width:90%;">
+
+                                        Si es menor que el ECHO Global, las posturas positivas/apoyo reciben más
+                                        interacción; si es mayor, reciben menos. En este caso, la interacción refuerza
+                                        las posturas positivas/apoyo.
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <!-- KPI APOYO -->
+                            <div class="col-12 col-md-3">
+
+                                <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 justify-content-flex-start"
+                                    style="border-top:4px solid #0a7c4a !important; justify-content:flex-start;">
+
+                                    <!-- TÍTULO -->
+                                    <div class="text-muted text-uppercase fw-bold mb-2"
+                                        style="font-size:.72rem; letter-spacing:.06em; line-height:1.3; min-height:34px;">
+
+                                        Convergencia de Polaridad Favorable Máxima
+
+                                    </div>
+
+                                    <!-- VALOR -->
+                                    <div id="kpiScoreopMax" class="fw-bold lh-1 mt-2 mb-2"
+                                        style="font-size:2.2rem; color:#0a7c4a;">
+
+                                        --
+
+                                    </div>
+
+                                    <!-- TEXTO -->
+                                    <div class="text-muted" style="font-size:.82rem; line-height:1.5;">
+
+                                        Pico de ECHO score más alto
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <!-- KPI RECHAZO -->
+                            <div class="col-12 col-md-3">
+
+                                <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 justify-content-flex-start"
+                                    style="border-top:4px solid #d8535f !important; justify-content:flex-start;">
+
+                                    <!-- TÍTULO -->
+                                    <div class="text-muted text-uppercase fw-bold mb-2"
+                                        style="font-size:.72rem; letter-spacing:.06em; line-height:1.3; min-height:34px;">
+
+                                        Convergencia de Polaridad Crítica Máxima
+
+                                    </div>
+
+                                    <!-- VALOR -->
+                                    <div id="kpiScoreopMin" class="fw-bold lh-1 mt-2 mb-2"
+                                        style="font-size:2.2rem; color:#d8535f;">
+
+                                        --
+
+                                    </div>
+
+                                    <!-- TEXTO -->
+                                    <div class="text-muted" style="font-size:.82rem; line-height:1.5;">
+
+                                        Pico de ECHO score más bajo
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <!-- CONTENIDO SCOREOP -->
+                        <div id="scoreop-content"></div>
+                        <!-- /row KPIs -->
+
+                        <!-- Contenido ScoreOP: trayectorias, tarjetas de plataforma, posts (JS rellena esto) -->
+                        <div id="scoreop-content"></div>
+
+                    </div><!-- /tab-sentimiento -->
+
+
+                    <!-- ============================================================ -->
+                    <!-- PESTAÑA 3: TEMAS Y NUBES                                     -->
+                    <!-- ============================================================ -->
+                    <div class="tab-pane fade" id="tab-contenido" role="tabpanel">
+                        <div class="bg-light p-3 rounded-3 mb-4 border-start border-4 border-primary shadow-sm">
+                            <h5 class="text-info fw-bold mb-1">
+                                <i class="bi bi-chat-left-quote me-2"></i> Temas y nubes de palabras
+                            </h5>
+                            <p class="text-muted small mb-0">
+                                Extracción semántica de los conceptos más relevantes. Permite conocer de qué se habla
+                                exactamente cuando se menciona el tema principal.
+                            </p>
+                        </div>
+                        <div class="mb-4 p-3 bg-primary-subtle border border-primary-subtle rounded-3">
+                            <label class="form-label fw-bold small text-uppercase text-primary mb-2">
+                                📍 Filtro por Ámbito Geográfico
+                            </label>
+                            <div class="input-group shadow-sm">
+                                <span class="input-group-text bg-info  text-white">
+                                    <i class="bi bi-geo-alt-fill"></i>
+                                </span>
+                                <input type="text" id="geoFilterInput3" class="form-control" autocomplete="off"
+                                    placeholder="Ej: Valencia, Madrid, Argentina">
+                                <button data-requires-llm disabled
+                                    class="btn btn-info  fw-bold {% if user.role not in ['admin', 'analista'] %}disabled{% endif %}"
+                                    id="btnApplyFilter3" {% if user.role not in ['admin', 'analista' ] %}disabled{%
+                                    endif %}>
+                                    APLICAR FILTRO
+                                </button>
+                                <button
+                                    class="btn btn-outline-secondary {% if user.role not in ['admin', 'analista'] %}disabled{% endif %}"
+                                    id="btnClearFilter3" {% if user.role not in ['admin', 'analista' ] %}disabled{%
+                                    endif %}>
+                                    LIMPIAR
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="row g-4 align-items-stretch">
+                            <div class="col-md-5 d-flex">
+                                <div class="card border-0 shadow-sm h-100 rounded-4 p-4 w-100">
+
+                                    <!-- Explorador de subtemas -->
+                                    <div class="mb-4 p-3 bg-info-subtle rounded-3 border border-info-subtle">
+                                        <label class="form-label fw-bold small text-uppercase text-info mb-2">
+                                            🧠 Explorador de Subtemas
+                                        </label>
+                                        <select id="topicDropdownSelect"
+                                            class="form-select form-select-sm mb-2 border-info">
+                                            <option value="">— Selecciona un subtema detectado —</option>
+                                        </select>
+                                        <div class="input-group">
+                                            <input type="text" id="topicFilterInput" class="form-control border-info"
+                                                placeholder="O escribe un subtema…">
+                                            <button
+                                                class="btn btn-info text-white fw-bold {% if user.role not in ['admin', 'analista'] %} disabled {% endif %}"
+                                                id="btnApplyTopic" {% if user.role not in ['admin', 'analista' ] %}
+                                                disabled {% endif %}>
+                                                BUSCAR
+                                            </button>
+                                            <button
+                                                class="btn btn-outline-info {% if user.role not in ['admin', 'analista'] %} disabled {% endif %}"
+                                                id="btnClearTopic" title="Limpiar filtro de topic" {% if user.role not
+                                                in ['admin', 'analista' ] %} disabled {% endif %}>
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        </div>
+                                        <small class="text-info-emphasis d-block mt-2" style="font-size:0.75rem;">
+                                            Selecciona del desplegable o escribe para buscar por similitud semántica.
+                                        </small>
+                                    </div>
+
+                                    <h6 class="text-dark fw-bold small text-uppercase mb-3">Distribución de temas y
+                                        sentimiento</h6>
+                                    <div style="height:280px;" class="mb-4">
+                                        <canvas id="topicsPieChart"></canvas>
+                                    </div>
+                                    <hr class="my-4 opacity-25">
+                                    <div id="topicsDetailContainer"></div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-7 d-flex">
+                                <div class="card border-0 shadow-sm h-100 rounded-4 p-4 w-100">
+                                    <h6 class="text-dark fw-bold small text-uppercase mb-2">Nubes de Palabras por Fuente
+                                    </h6>
+                                    <p id="cloudTitle" class="text-muted small mb-4 fst-italic">
+                                        Términos más frecuentes en los posts analizados (vocabulario espontáneo,
+                                        excluidas las keywords de búsqueda).
+                                    </p>
+                                    <div id="cloudContainer" class="row g-3"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- /tab-contenido -->
+
+                    <div class="tab-pane fade" id="tab-grafo" role="tabpanel">
+
+                        <!-- Cabecera informativa -->
+                        <div class="bg-light p-4 rounded-4 mb-4 border-start border-4 border-warning shadow-sm">
+                            <h5 class="text-warning fw-bold mb-3">
+                                <i class="bi bi-diagram-3-fill me-2"></i>Red de posturas, argumentos y vocabulario
+                                sincronizado
+                            </h5>
+                            <div class="row g-4">
+                                <div class="col-md-7">
+                                    <p class="text-dark mb-2">
+                                        El sistema emplea un modelo ajustado específicamente para el análisis
+                                        automatizado de conversaciones digitales,
+                                        permitiendo identificar la <strong>postura expresada</strong> en publicaciones y
+                                        comentarios, así como los
+                                        <strong>principales argumentos</strong> asociados a cada posición.
+                                    </p>
+                                    <p class="text-muted small mb-0">
+                                        A cada contenido analizado se le asigna una categoría de postura y un
+                                        <strong>tópico argumental representativo</strong>,
+                                        entendido como el motivo principal que explica la posición expresada respecto al
+                                        tema de estudio.
+                                        De este modo, el análisis permite identificar no solo la orientación general de
+                                        la conversación,
+                                        sino también los argumentos más frecuentes que estructuran el debate público
+                                        digital.
+                                    </p>
+                                </div>
+
+                                <!-- Jerarquía visual de interacción -->
+                                <div class="col-md-5 border-start ps-4">
+                                    <h6 class="fw-bold small text-uppercase text-secondary mb-3">Cómo explorar la red:
+                                    </h6>
+                                    <div class="vstack gap-2">
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="bi bi-node-plus text-warning"></i>
+                                            <div class="small"><strong>Nodos:</strong> Representan argumentos
+                                                principales o usuarios. El color indica la postura general (favorable,
+                                                neutro, desfavorable).
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="bi bi-link text-secondary"></i>
+                                            <div class="small"><strong>Conexiones:</strong> Muestran cómo los usuarios
+                                                interactúan o responden a publicaciones con otros argumentos.
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="bi bi-cloud-word text-info"></i>
+                                            <div class="small"><strong>Sincronización:</strong> Clic en un nodo filtra
+                                                la nube de palabras. Clic en una palabra resalta los nodos que la usan.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Controles de nivel y plataforma -->
+                            <div class="d-flex flex-wrap gap-3 align-items-center">
+                                <div class="btn-group btn-group-sm" role="group" id="grafoNivelBtns">
+                                    <input type="radio" class="btn-check" name="grafoNivel" id="nivelTopic"
+                                        value="topic" checked>
+                                    <label class="btn btn-outline-warning fw-bold" for="nivelTopic">
+                                        <i class="bi bi-tags me-1"></i>Por narrativa
+                                    </label>
+                                    <input type="radio" class="btn-check" name="grafoNivel" id="nivelUsuario"
+                                        value="usuario" {% if user.role !='admin' %}disabled{% endif %}>
+                                    <label class="btn btn-outline-warning fw-bold" for="nivelUsuario" {% if user.role
+                                        !='admin' %}style="opacity:.45;cursor:not-allowed;" title="Solo admin" {% endif
+                                        %}>
+                                        <i class="bi bi-person-lock me-1"></i>Por usuario (admin)
+                                    </label>
+                                </div>
+                                <select id="grafoPlatFilter" class="form-select form-select-sm"
+                                    style="max-width:180px;">
+                                    <option value="todas">Todas las plataformas</option>
+                                    <option value="bluesky">Bluesky</option>
+                                    <option value="reddit">Reddit</option>
+                                    <option value="telegram">Telegram</option>
+                                    <option value="youtube">YouTube</option>
+                                </select>
+                                <button class="btn btn-outline-secondary btn-sm" id="btnResetGrafo"
+                                    title="Restablecer vista">
+                                    <i class="bi bi-arrows-fullscreen"></i> Reset
+                                </button>
+                                <!-- Aviso privacidad nivel 3 -->
+                                <span id="grafoAvisoAdmin" class="d-none">
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="bi bi-shield-lock me-1"></i>Modo admin — ids anónimos únicamente
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Panel de topics y filtro geográfico sincronizado con el grafo -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-12">
+                                <div class="p-3 bg-light border border-warning rounded-3">
+                                    <label class="form-label fw-bold small text-uppercase text-warning mb-2">
+                                        🧠 Filtrar por subtema
+                                    </label>
+                                    <select id="grafoTopicDropdown"
+                                        class="form-select form-select-sm mb-2 border-warning">
+                                        <option value="">— Selecciona un subtema —</option>
+                                    </select>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" id="grafoTopicInput" class="form-control border-warning"
+                                            placeholder="O escribe un subtema…">
+                                        <button class="btn btn-warning text-white fw-bold"
+                                            id="btnGrafoApplyTopic">BUSCAR</button>
+                                        <button class="btn btn-outline-warning" id="btnGrafoClearTopic" title="Limpiar">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="p-3 bg-light border border-warning rounded-3">
+                                    <label class="form-label fw-bold small text-uppercase text-warning mb-2">
+                                        📍 Filtro por Ámbito Geográfico
+                                    </label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-warning text-white">
+                                            <i class="bi bi-geo-alt-fill"></i>
+                                        </span>
+                                        <input type="text" id="geoFilterInput4" class="form-control"
+                                            placeholder="Ej: Valencia, Madrid…">
+                                        <button data-requires-llm disabled
+                                            class="btn btn-warning text-white fw-bold {% if user.role not in ['admin', 'analista'] %}disabled{% endif %}"
+                                            id="btnApplyFilter4" {% if user.role not in ['admin', 'analista' ]
+                                            %}disabled{% endif %}>
+                                            APLICAR FILTRO
+                                        </button>
+                                        <button class="btn btn-outline-secondary" id="btnClearFilter4">LIMPIAR</button>
+                                    </div>
+                                    <small class="text-muted mt-1 d-block" style="font-size:.7rem;">
+                                        Al aplicar, recarga el grafo con los datos filtrados.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel de detalle (se rellena al hacer clic) -->
+                        <div id="grafoDetalle" class="mb-3 d-none">
+                            <div class="card border-0 shadow-sm rounded-4 p-3">
+                                <div id="grafoDetalleContenido"></div>
+                            </div>
+                        </div>
+
+                        <!-- Dos paneles principales -->
+                        <div class="row g-3">
+
+                            <!-- Nube de palabras -->
+                            <div class="col-md-5">
+                                <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                                    <h6 class="fw-bold small text-uppercase mb-1">
+                                        Nube de términos
+                                        <small class="text-muted fw-normal ms-2" style="font-size:.65rem;">
+                                            verde=favorable · rojo=rechazo · gris=neutro
+                                        </small>
+                                    </h6>
+                                    <p class="text-muted mb-2" style="font-size:.72rem;">
+                                        Clic en una palabra → resalta los nodos del grafo que la usan
+                                    </p>
+                                    <div id="grafoWordcloudContainer" style="height:360px;position:relative;">
+                                        <div id="grafoWcLoader" class="text-center py-5 text-muted">
+                                            <div class="spinner-border spinner-border-sm mb-2"></div><br>
+                                            <small>Cargando nube…</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Grafo canvas -->
+                            <div class="col-md-7">
+                                <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                                    <h6 class="fw-bold small text-uppercase mb-1">Grafo de relaciones</h6>
+                                    <p class="text-muted mb-2" style="font-size:.72rem;">
+                                        Clic en un nodo → resalta sus palabras en la nube · Rueda para zoom · Arrastra
+                                        para mover
+                                    </p>
+                                    <div id="grafoContainer" style="height:360px;background:var(--color-background-secondary,#f8f9fa);
+                                                border-radius:12px;position:relative;overflow:hidden;">
+                                        <canvas id="grafoCanvas" style="width:100%;height:100%;display:block;"></canvas>
+                                        <div id="grafoCanvasLoader"
+                                            class="position-absolute top-50 start-50 translate-middle text-center">
+                                            <div class="spinner-border text-warning mb-2"></div>
+                                            <div class="small text-muted">Construyendo red…</div>
+                                        </div>
+                                    </div>
+                                    <!-- Leyenda -->
+                                    <div class="d-flex flex-wrap gap-3 mt-2" style="font-size:.68rem;">
+                                        <span><span class="d-inline-block rounded-circle me-1"
+                                                style="width:10px;height:10px;background:#0a7c4a;"></span>Favorable
+                                            (&gt;70%)</span>
+                                        <span><span class="d-inline-block rounded-circle me-1"
+                                                style="width:10px;height:10px;background:#adb5bd;"></span>Neutro</span>
+                                        <span><span class="d-inline-block rounded-circle me-1"
+                                                style="width:10px;height:10px;background:#d8535f;"></span>Desfavorable
+                                            (&lt;30%)</span>
+                                        <span><span class="d-inline-block rounded-circle me-1"
+                                                style="width:10px;height:10px;border:2px dashed #888;background:transparent;"></span>Subtopic
+                                            comentarios</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div><!-- /row -->
+                    </div><!-- /tab-grafo -->
+
+                    <!-- ============================================================ -->
+                    <!-- PESTAÑA 5: ANÁLISIS LÉXICO-SEMÁNTICO (PDF §A.4)             -->
+                    <!-- ============================================================ -->
+                    <div class="tab-pane fade" id="tab-lexico" role="tabpanel">
+
+                        <!-- Cabecera metodológica -->
+                        <div class="bg-light p-4 rounded-4 mb-4 border-start border-4 shadow-sm"
+                            style="border-color:#6f42c1 !important;">
+                            <h5 class="fw-bold mb-3" style="color:#6f42c1;">
+                                <i class="bi bi-cloud-fill me-2"></i>Vocabulario y narrativas
+                            </h5>
+                            <div class="row g-4">
+                                <div class="col-md-8">
+                                    <p class="text-dark mb-2 small">
+                                        Este módulo permite entender de qué habla la comunidad, qué postura adopta y
+                                        quiénes están influyendo más en la conversación. Incluye tres formas de explorar
+                                        los resultados:
+                                        <strong>Nube de términos:</strong> muestra las palabras y expresiones más
+                                        utilizadas.
+                                        <strong>Temas detectados:</strong> agrupa los principales topics y muestra la
+                                        polaridad asociada (positivas, negativas o neutras).
+                                        <strong>Mapa de narrativas:</strong> relaciona las posturas principales con los
+                                        usuarios que más contribuyen a difundirlos.
+                                    </p>
+                                    <div class="d-flex flex-wrap gap-3 small mt-2" style="font-size:.75rem;">
+                                        <span><strong>Tamaño:</strong> Frecuencia e impacto social</span>
+                                        <span><strong>Color:</strong> Tono (verde=favorable, rojo=crítico)</span>
+                                        <span><strong>Opacidad:</strong> Coherencia argumental</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                                        <select id="lexV2PlatFilter" class="form-select form-select-sm"
+                                            style="max-width:180px;">
+                                            <option value="todas">Todas las plataformas</option>
+                                            <option value="bluesky">Bluesky</option>
+                                            <option value="reddit">Reddit</option>
+                                            <option value="telegram">Telegram</option>
+                                            <option value="youtube">YouTube</option>
+                                        </select>
+                                        <button class="btn btn-sm fw-bold text-white" id="lexV2BtnCargar"
+                                            style="background:#6f42c1;">
+                                            <i class="bi bi-arrow-clockwise me-1"></i>Cargar
+                                        </button>
+                                    </div>
+                                    <div id="lexV2Meta" class="mt-2 d-flex flex-wrap gap-1"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Filtro Geográfico -->
+                        <div class="col-12 mb-4">
+                            <div class="p-3 bg-light border rounded-3" style="border-color:#6f42c1 !important;">
+                                <label class="form-label fw-bold small text-uppercase mb-2" style="color:#6f42c1;">
+                                    📍 Filtro por Ámbito Geográfico
+                                </label>
+                                <div class="input-group shadow-sm">
+                                    <span class="input-group-text text-white"
+                                        style="background:#6f42c1; border-color:#6f42c1;">
+                                        <i class="bi bi-geo-alt-fill"></i>
+                                    </span>
+                                    <input type="text" id="geoFilterInput5" class="form-control" autocomplete="off"
+                                        placeholder="Ej: Valencia, Madrid, Argentina">
+                                    <button data-requires-llm disabled
+                                        class="btn text-white fw-bold {% if user.role not in ['admin', 'analista'] %} disabled {% endif %}"
+                                        id="btnApplyFilter5" style="background:#6f42c1; border-color:#6f42c1;" {% if
+                                        user.role not in ['admin', 'analista' ] %} disabled {% endif %}>
+                                        APLICAR FILTRO
+                                    </button>
+                                    <button
+                                        class="btn btn-outline-secondary {% if user.role not in ['admin', 'analista'] %} disabled {% endif %}"
+                                        id="btnClearFilter5" {% if user.role not in ['admin', 'analista' ] %} disabled
+                                        {% endif %}>
+                                        LIMPIAR
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Loader -->
+                        <div id="lexV2Loader" class="text-center py-5 d-none">
+                            <div class="spinner-border" style="color:#6f42c1;width:2.5rem;height:2.5rem;"></div>
+                            <p class="mt-3 fw-bold text-muted">Construyendo representaciones semánticas…</p>
+                        </div>
+
+                        <!-- Contenido principal -->
+                        <div id="lexV2Content" class="d-none">
+
+                            <!-- Sub-navegación interna -->
+                            <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm border" id="lexV2Tabs"
+                                role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active fw-bold" id="lexV2NubeTab" data-bs-toggle="tab"
+                                        data-bs-target="#lexV2PanelNube" type="button" role="tab">
+                                        <i class="bi bi-cloud me-1"></i>Nube de términos
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link fw-bold" id="lexV2TemasTab" data-bs-toggle="tab"
+                                        data-bs-target="#lexV2PanelTemas" type="button" role="tab">
+                                        <i class="bi bi-tags me-1"></i>Temas detectados
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link fw-bold" id="lexV2GrafoTab" data-bs-toggle="tab"
+                                        data-bs-target="#lexV2PanelGrafo" type="button" role="tab">
+                                        <i class="bi bi-diagram-3 me-1"></i>Mapa de narrativas
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content" id="lexV2TabsContent">
+
+                                <!-- ══ PANEL A: NUBE DE TÉRMINOS ══ -->
+                                <div class="tab-pane fade show active" id="lexV2PanelNube" role="tabpanel">
+                                    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+                                        <div
+                                            class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+                                            <div>
+                                                <h6 class="fw-bold small text-uppercase mb-1">
+                                                    Nube de términos — palabras y frases
+                                                    <span class="badge ms-2 fw-normal"
+                                                        style="background:#6f42c1;font-size:.6rem;">pool dinámico</span>
+                                                </h6>
+                                                <p class="text-muted mb-0" style="font-size:.72rem;">
+                                                    Las palabras más grandes han generado más impacto. El color indica
+                                                    si se usan en un contexto a favor o en contra del tema.
+                                                    Las frases de dos palabras (bigramas) aparecen en <em>cursiva</em>.
+                                                    La opacidad indica coherencia argumental.
+                                                </p>
+                                            </div>
+                                            <div class="d-flex gap-2 align-items-center flex-shrink-0">
+                                                <div class="d-flex align-items-center">
+                                                    <label class="small text-muted fw-bold mb-0 me-1"
+                                                        style="font-size:.7rem;">Palabras:</label>
+                                                    <select id="lexV2NPalabras"
+                                                        class="form-select form-select-sm p-0 ps-1"
+                                                        style="width:65px;font-size:.75rem;">
+                                                        <option value="10">10</option>
+                                                        <option value="20" selected>20</option>
+                                                        <option value="50">50</option>
+                                                        <option value="0">Todos</option>
+                                                    </select>
+                                                </div>
+                                                <div class="d-flex align-items-center">
+                                                    <label class="small text-muted fw-bold mb-0 me-1"
+                                                        style="font-size:.7rem;">Frases:</label>
+                                                    <select id="lexV2NBigramas"
+                                                        class="form-select form-select-sm p-0 ps-1"
+                                                        style="width:65px;font-size:.75rem;">
+                                                        <option value="10">10</option>
+                                                        <option value="20" selected>20</option>
+                                                        <option value="50">50</option>
+                                                        <option value="0">Todos</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div id="lexV2NubeContainer" style="min-height:240px;display:flex;flex-wrap:wrap;gap:4px 10px;
+                                                align-content:flex-start;padding:8px;overflow:hidden;">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- ══ PANEL B: TEMAS DETECTADOS ══ -->
+                                <div class="tab-pane fade" id="lexV2PanelTemas" role="tabpanel">
+                                    <div class="row g-4">
+                                        <!-- Columna izquierda: explorador + detalle de tópicos -->
+                                        <div class="col-md-5 d-flex">
+                                            <div class="card border-0 shadow-sm h-100 rounded-4 p-4 w-100">
+
+                                                <!-- Explorador de subtemas -->
+                                                <div class="mb-3 p-3 rounded-3 border"
+                                                    style="background:#f3eeff;border-color:#6f42c1 !important;">
+                                                    <label class="form-label fw-bold small text-uppercase mb-2"
+                                                        style="color:#6f42c1;">
+                                                        🧠 Explorador de Subtemas
+                                                    </label>
+                                                    <select id="lexV2TopicDropdownSelect"
+                                                        class="form-select form-select-sm mb-2"
+                                                        style="border-color:#6f42c1;">
+                                                        <option value="">— Selecciona un subtema detectado —</option>
+                                                    </select>
+                                                    <div class="input-group input-group-sm mb-1">
+                                                        <input type="text" id="lexV2TopicFilterInput"
+                                                            class="form-control" style="border-color:#6f42c1;"
+                                                            placeholder="O escribe un subtema y pulsa Buscar…">
+                                                        <button data-requires-llm disabled
+                                                            class="btn text-white fw-bold {% if user.role not in ['admin', 'analista'] %} disabled {% endif %}"
+                                                            id="lexV2BtnApplyTopic" style="background:#6f42c1;" {% if
+                                                            user.role not in ['admin', 'analista' ] %} disabled {% endif
+                                                            %}>
+                                                            Buscar
+                                                        </button>
+                                                        <button
+                                                            class="btn btn-outline-secondary {% if user.role not in ['admin', 'analista'] %} disabled {% endif %}"
+                                                            id="lexV2BtnClearTopic" {% if user.role not in
+                                                            ['admin', 'analista' ] %} disabled {% endif %}>
+                                                            <i class="bi bi-x-lg"></i>
+                                                        </button>
+                                                    </div>
+                                                    <small class="text-muted" style="font-size:.7rem;">
+                                                        <i class="bi bi-info-circle me-1"></i>
+                                                        El explorador filtra sobre la plataforma seleccionada arriba.
+                                                    </small>
+                                                </div>
+
+                                                <!-- Pie chart -->
+                                                <h6 class="text-dark fw-bold small text-uppercase mb-2">Distribución de
+                                                    temas</h6>
+                                                <div style="height:260px;" class="mb-3">
+                                                    <canvas id="lexV2TopicsPieChart"></canvas>
+                                                </div>
+                                                <hr class="opacity-25 my-2">
+                                                <!-- Detalle de tópicos -->
+                                                <div id="lexV2TopicsDetailContainer"
+                                                    style="max-height:420px;overflow-y:auto;padding-right:4px;"></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Columna derecha: posts del tópico seleccionado -->
+                                        <div class="col-md-7 d-flex">
+                                            <div class="card border-0 shadow-sm h-100 rounded-4 p-4 w-100">
+                                                <div id="lexV2TopicPostsPanel">
+                                                    <div class="text-center text-muted py-5">
+                                                        <i
+                                                            class="bi bi-hand-index-thumb display-4 d-block mb-3 opacity-25"></i>
+                                                        <p class="small">Selecciona un tema del panel izquierdo para ver
+                                                            las publicaciones asociadas.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- ══ PANEL C: MAPA DE NARRATIVAS (Grafo bipartito) ══ -->
+                                <div class="tab-pane fade" id="lexV2PanelGrafo" role="tabpanel">
+                                    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+
+                                        <!-- Controles del grafo -->
+                                        <div class="d-flex flex-wrap gap-3 align-items-center mb-3">
+                                            <div class="btn-group btn-group-sm" role="group" id="lexV2GrafoNivelBtns">
+                                                <input type="radio" class="btn-check" name="lexV2GrafoNivel"
+                                                    id="lexV2NivelTopic" value="topic" checked>
+                                                <label class="btn btn-outline-primary fw-bold" for="lexV2NivelTopic">
+                                                    <i class="bi bi-tags me-1"></i>Por narrativa (temas)
+                                                </label>
+                                                <input type="radio" class="btn-check" name="lexV2GrafoNivel"
+                                                    id="lexV2NivelUsuario" value="usuario" {% if user.role !='admin'
+                                                    %}disabled{% endif %}>
+                                                <label class="btn btn-outline-primary fw-bold" for="lexV2NivelUsuario"
+                                                    {% if user.role !='admin' %}style="opacity:.45;cursor:not-allowed;"
+                                                    title="Solo admin" {% endif %}>
+                                                    <i class="bi bi-person-lock me-1"></i>Por usuario (admin)
+                                                </label>
+                                            </div>
+                                            <button class="btn btn-outline-secondary btn-sm ms-auto"
+                                                id="lexV2BtnResetGrafo" title="Restablecer vista">
+                                                <i class="bi bi-arrows-fullscreen"></i> Reset zoom
+                                            </button>
+                                            <div class="d-flex gap-2 align-items-center ms-lg-3 flex-nowrap">
+                                                <!-- Selector de Temas -->
+                                                <div class="d-flex align-items-center">
+                                                    <label class="small text-muted fw-bold mb-0 me-1"
+                                                        style="font-size: 0.7rem;">Temas:</label>
+                                                    <select id="lexV2TopNTopics"
+                                                        class="form-select form-select-sm p-0 ps-1"
+                                                        style="width:65px; font-size: 0.75rem;">
+                                                        <option value="5">5</option>
+                                                        <option value="10" selected>10</option>
+                                                        <option value="15">15</option>
+                                                        <option value="0">Todos</option>
+                                                    </select>
+                                                </div>
+                                                <!-- Selector de Usuarios -->
+                                                <div class="d-flex align-items-center">
+                                                    <label class="small text-muted fw-bold mb-0 me-1"
+                                                        style="font-size: 0.7rem;">Usuarios:</label>
+                                                    <select id="lexV2TopNUsers"
+                                                        class="form-select form-select-sm p-0 ps-1"
+                                                        style="width:65px; font-size: 0.75rem;">
+                                                        <option value="10">10</option>
+                                                        <option value="20">20</option>
+                                                        <option value="30" selected>30</option>
+                                                        <option value="50">50</option>
+                                                        <option value="0">Todos</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <p class="text-muted mb-0" style="font-size:.72rem;">
+                                                <span id="lexV2GrafoHint">
+                                                    <strong>Modo tema:</strong> Cada nodo es un argumento principal. Haz
+                                                    clic para ver los usuarios que lo impulsan.
+                                                    Rueda del ratón para zoom · Arrastra para mover.
+                                                </span>
+                                            </p>
+                                        </div>
+
+                                        <!-- Panel de detalle -->
+                                        <div id="lexV2GrafoDetalle" class="mb-3 d-none">
+                                            <div class="border rounded-3 p-2 bg-light" style="font-size:.75rem;">
+                                                <div id="lexV2GrafoDetalleContenido"></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Panel lateral + Canvas -->
+                                        <div class="row g-3">
+                                            <div class="col-12 col-lg-8 order-1 order-lg-1">
+                                                <div style="position:relative;height:480px;
+                                                            background:var(--color-background-secondary,#f8f9fa);
+                                                            border-radius:12px;overflow:hidden;">
+                                                    <canvas id="lexV2GrafoCanvas"
+                                                        style="width:100%;height:100%;display:block;"></canvas>
+                                                    <div id="lexV2GrafoLoader"
+                                                        class="position-absolute top-50 start-50 translate-middle text-center">
+                                                        <div class="spinner-border mb-2" style="color:#6f42c1;"></div>
+                                                        <div class="small text-muted">Construyendo red…</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-lg-4 order-2 order-lg-2">
+                                                <div id="lexV2GrafoSidePanel" style="height:480px;overflow-y:auto;
+                                                            background:var(--color-background-secondary,#f8f9fa);
+                                                            border-radius:12px;padding:14px;">
+                                                    <!-- contenido dinámico vía JS -->
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Leyenda -->
+                                        <div class="d-flex flex-wrap gap-4 mt-3"
+                                            style="font-size:.68rem;color:var(--color-text-secondary);">
+                                            <span>
+                                                <span class="d-inline-block rounded-circle me-1"
+                                                    style="width:14px;height:14px;background:#6c757d;opacity:.9;"></span>
+                                                Nodo tema (borde sólido)
+                                            </span>
+                                            <span>
+                                                <span class="d-inline-block rounded-circle me-1" style="width:10px;height:10px;background:#6c757d;opacity:.5;
+                                                        border:1.5px dashed #6c757d;"></span>
+                                                Nodo usuario (borde punteado)
+                                            </span>
+                                            <span>
+                                                <span class="d-inline-block me-1" style="width:18px;height:3px;background:#0a7c4a;
+                                                        display:inline-block;vertical-align:middle;"></span>
+                                                Favorable / Apoyo
+                                            </span>
+                                            <span>
+                                                <span class="d-inline-block me-1" style="width:18px;height:3px;background:#d8535f;
+                                                        display:inline-block;vertical-align:middle;"></span>
+                                                Crítico / Rechazo
+                                            </span>
+                                            <span>Grosor = impacto · Opacidad = coherencia argumental</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div><!-- /lexV2TabsContent -->
+                        </div><!-- /lexV2Content -->
+
+                    </div><!-- /tab-pane #tab-lexico -->
+                </div><!-- /tab-content -->
+            </div><!-- /chartsContainer -->
+        </div><!-- /col-lg-8 -->
+
+        <!-- ============================================================ -->
+        <!-- COLUMNA DERECHA: ANÁLISIS PROFUNDO IA                        -->
+        <!-- ============================================================ -->
+        <div class="col-lg-4">
+            <div class="card shadow border-0 mb-4">
+                <div class="card-header bg-dark text-white py-3">
+                    <h5 class="mb-0"><i class="bi bi-stars text-warning me-2"></i> Análisis Profundo IA</h5>
+                </div>
+                <div class="card-body">
+
+                    <div class="d-grid gap-3 mb-3">
+                        <button id="btnRunAcep" data-requires-llm disabled
+                            class="btn btn-outline-primary text-start p-3 shadow-sm position-relative">
+                            <div class="fw-bold"><i class="bi bi-check2-circle me-2"></i> Indicador de aceptación</div>
+                            <small class="text-muted d-block mt-1">
+                                Aceptación social ponderada por esfuerzo y alcance a partir de cuatro dimensiones
+                                complementarias.
+                            </small>
+                            <span class="position-absolute top-0 end-0 badge rounded-pill bg-secondary"
+                                style="transform: translate(-15%, -40%);">Fase 2</span>
+                        </button>
+                    </div>
+                    <div id="aceptacionContainer" class="mt-3"></div>
+
+                    <!-- Modal Aceptación -->
+                    <div class="modal fade" id="aceptacionModal" tabindex="-1" aria-labelledby="aceptacionModalLabel"
+                        aria-hidden="true">
+                        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                            <div class="modal-content">
+
+                                <div class="modal-header py-2">
+                                    <div>
+                                        <h5 class="modal-title fw-bold mb-0" id="aceptacionModalLabel">
+                                            <i class="bi bi-bar-chart-steps me-2 text-primary"></i>Indicador de
+                                            aceptación social de medidas o políticas públicas
+                                        </h5>
+                                        <small class="text-muted">
+                                            El indicador de aceptación social muestra en qué medida la conversación
+                                            digital apoya o rechaza una medida o política pública. Para calcularlo,
+                                            analiza si la medida se percibe como legítima, efectiva, justa y equitativa,
+                                            y si existe confianza en las instituciones responsables de aplicarla.
+                                        </small>
+                                        <ul class="text-muted mb-0 mt-1 ps-4" style="font-size:.75rem;">
+                                            <li><strong>Más del 60 %:</strong> aceptación predominante.</li>
+                                            <li><strong>Entre el 40 % y el 60 %:</strong> no existe una posición
+                                                claramente dominante.</li>
+                                            <li><strong>Menos del 40 %:</strong> rechazo predominante.</li>
+                                        </ul>
+                                    </div>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Cerrar"></button>
+                                </div>
+
+
+                                <div class="modal-body" id="aceptacionModalBody">
+                                    <div class="text-center my-3">
+                                        <div class="spinner-border text-primary"></div>
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer flex-wrap gap-2 py-2">
+                                    <div class="me-auto d-flex align-items-center gap-2 flex-wrap">
+                                        <label class="form-label mb-0 small fw-bold text-muted">
+                                            <i class="bi bi-geo-alt me-1"></i>Filtro geográfico:
+                                        </label>
+                                        <input type="text" id="geoInputModal" class="form-control form-control-sm"
+                                            style="max-width:240px;" placeholder="Ej: Madrid, Cataluña, España">
+                                        <button type="button" id="btnApplyGeoFromModal" data-requires-llm disabled
+                                            class="btn btn-sm btn-primary fw-bold {% if user.role not in ['admin','analista'] %} disabled {% endif %}"
+                                            {% if user.role not in ['admin','analista'] %} disabled {% endif %}>
+                                            Aplicar
+                                        </button>
+                                        <button type="button" id="btnClearGeoFromModal"
+                                            class="btn btn-sm btn-outline-secondary">
+                                            Limpiar
+                                        </button>
+                                    </div>
+                                    {% if ENABLE_DOWNLOAD %}
+                                    <button id="btnDownloadAceptacion"
+                                        class="btn btn-sm btn-outline-secondary {% if user.role not in ['admin','analista'] %} disabled {% endif %}"
+                                        {% if user.role not in ['admin','analista'] %} disabled {% endif %}>
+                                        <i class="bi bi-download me-1"></i>Descargar TXT
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-sm btn-secondary"
+                                        data-bs-dismiss="modal">Cerrar</button>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div><!-- /modal aceptación -->
+
+                    <div class="d-grid gap-3 mt-3">
+                        <button id="btnRunPred" class="btn btn-outline-success text-start p-3 shadow-sm position-relative
+                            {% if FEATURES.prediccion %}
+                                btn-outline-success
+                            {% else %}
+                                btn-light text-muted border
+                            {% endif %}" {% if not FEATURES.prediccion %} disabled {% elif user.role not in
+                            ['admin', 'analista' ] %} disabled {% endif %}>
+                            <div class="fw-bold"><i class="bi bi-graph-up me-2"></i> Predicción</div>
+                            <small class="text-muted d-block mt-1">Predicción de tendencias.</small>
+                            <span class="position-absolute top-0 end-0 badge rounded-pill bg-secondary"
+                                style="transform: translate(-15%, -40%);">
+                                {% if FEATURES.prediccion %}
+                                Fase 3
+                                {% else %}
+                                Próximamente
+                                {% endif %}
+                            </span>
+                        </button>
+                    </div>
+                    <div class="d-grid gap-3 mt-3">
+                        <button id="btnRunAlerts" class="btn text-start p-3 shadow-sm position-relative
+                            {% if FEATURES.alertas %}
+                                btn-outline-warning
+                            {% else %}
+                                btn-light text-muted border
+                            {% endif %}" {% if not FEATURES.alertas %} disabled {% elif user.role not in
+                            ['admin', 'analista' ] %} disabled {% endif %}>
+                            <div class="fw-bold">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                Generar alertas
+                            </div>
+                            <small class="d-block mt-1">
+                                Genera alertas de interés.
+                            </small>
+                            <span class="position-absolute top-0 end-0 badge rounded-pill bg-secondary"
+                                style="transform: translate(-15%, -40%);">
+                                {% if FEATURES.alertas %}
+                                Fase 4
+                                {% else %}
+                                Próximamente
+                                {% endif %}
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div><!-- /col-lg-4 -->
+
+    </div><!-- /row principal -->
+
+    <!-- Modal para zoom en nubes -->
+    <div class="modal fade" id="vllmCloudModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-body p-0 text-center">
+                    <img src="" id="vllmCloudZoomImg" class="img-fluid rounded shadow-lg" style="max-height:90vh;">
+                    <button type="button" class="btn btn-light mt-3 fw-bold" data-bs-dismiss="modal">CERRAR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        #cloudContainer img {
+            cursor: zoom-in;
+            transition: transform 0.2s;
+        }
+
+        #cloudContainer img:hover {
+            transform: scale(1.02);
+            filter: brightness(0.9);
+        }
+
+        .post-card {
+            transition: box-shadow 0.15s;
+        }
+
+        .post-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        #lexV2Tabs .nav-link {
+            color: #6f42c1;
+        }
+
+        #lexV2Tabs .nav-link:hover {
+            background: rgba(111, 66, 193, 0.1);
+            color: #6f42c1;
+        }
+
+        #lexV2Tabs .nav-link.active {
+            background: #6f42c1 !important;
+            color: #fff !important;
+        }
+
+        /* Botones de nivel del grafo */
+        #lexV2GrafoNivelBtns .btn-outline-primary {
+            color: #6f42c1;
+            border-color: #6f42c1;
+        }
+
+        #lexV2GrafoNivelBtns .btn-check:checked+.btn-outline-primary {
+            background: #6f42c1;
+            border-color: #6f42c1;
+            color: #fff;
+        }
+    </style>
+
+</div><!-- /container-fluid -->
+{% endblock %}
+
+{% block extra_js %}
+<link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.css" rel="stylesheet" type="text/css" />
+<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>
+<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.polyfills.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', path='analizar_datasets.js') }}?v=9"></script>
+<script>
+    const userRole = "{{ user.role }}";
+</script>
+{% endblock %}

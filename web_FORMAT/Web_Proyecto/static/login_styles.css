@@ -1,0 +1,112 @@
+/* Made with love by Mutiullah Samim*/
+
+html, body {
+    height: 100%;
+    font-family: 'Numans', sans-serif;
+
+    background-image: url("/static/imgs/fondo_login_2.png");
+    background-repeat: repeat-x;
+    background-size: auto 100%; /* ajusta altura y ancho automático para repetir */
+    animation: moverFondo 80s linear infinite;
+}
+
+@keyframes moverFondo {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 100% 0;
+    }
+}
+
+.container{
+height: 100%;
+align-content: center;
+}
+
+.card-body {
+    margin-top: 70px; /* para que no quede bajo la cabecera */
+}
+.card{
+height: 410px;
+margin-top: auto;
+margin-bottom: auto;
+width: 455px;
+background-color: rgba(49, 45, 45, 0.8) !important;
+border-radius: 15px;
+}
+
+.social_icon span{
+font-size: 60px;
+margin-left: 10px;
+color: #f7c873;
+}
+
+.social_icon span:hover{
+color: #f1cb84;
+cursor: pointer;
+}
+
+.card-header h3{
+position: absolute;
+color: white;
+right: 20px;
+}
+
+.social_icon2{
+position: absolute;
+right: 20px;
+top: -45px;
+}
+
+.social_icon {
+    /* eliminamos position absolute */
+    position: absolute;
+    left: 20px;
+    /*gap: 10px;  espacio entre iconos */
+    top: -45px;
+}
+
+.input-group-prepend span{
+width: 50px;
+background-color: #f3d478;
+color: black;
+border:0 !important;
+}
+
+input:focus{
+outline: 0 0 0 0  !important;
+box-shadow: 0 0 0 0 !important;
+
+}
+
+.remember{
+color: white;
+}
+
+.remember input
+{
+width: 20px;
+height: 20px;
+margin-left: 15px;
+margin-right: 5px;
+}
+
+.login_btn{
+color: black;
+background-color: #FFC312;
+width: 100px;
+}
+
+.login_btn:hover{
+color: black;
+background-color: white;
+}
+
+.links{
+color: white;
+}
+
+.links a{
+margin-left: 4px;
+}

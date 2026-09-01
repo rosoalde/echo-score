@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}
+Monitorización
+{% endblock %}
+
+{% block page_title %}
+Monitorización
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="/administracion">Administración</a>
+</li>
+<li class="breadcrumb-item active">
+    Monitorización
+</li>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <!-- AVISO DE ACCESO -->
+
+    <div class="alert alert-info d-flex align-items-start gap-2 mb-4">
+        <i class="bi bi-info-circle mt-1"></i>
+        <div>
+            <strong>Grafana y Prometheus solo escuchan en <code>127.0.0.1</code> del servidor</strong>
+            (igual que la base de datos y Redis) — no se pueden abrir desde aquí directamente.
+            Las tarjetas de abajo son un resumen rápido que <code>admin-api</code> consulta por la red
+            interna de Docker. Para el detalle completo (histórico, por contenedor, alertas...), abre un
+            túnel SSH desde tu máquina:
+            <pre class="bg-white border rounded-3 p-2 mt-2 mb-1 small">ssh -L 3000:localhost:3000 -L 9090:localhost:9090 usuario@tu-servidor</pre>
+            y entra en <code>http://localhost:3000</code> (Grafana) o <code>http://localhost:9090</code> (Prometheus).
+        </div>
+    </div>
+
+
+    <!-- ESTADO DE CONEXIÓN -->
+
+    <div id="promDownAlert" class="alert alert-warning d-none">
+        <i class="bi bi-exclamation-triangle"></i>
+        No se ha podido consultar Prometheus. Comprueba que los contenedores de monitorización estén levantados
+        (<code>docker compose ps</code>).
+    </div>
+
+
+    <!-- HOST -->
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="mb-3"><i class="bi bi-hdd-rack"></i> Servidor (host)</h5>
+            <div class="row g-3" id="hostMetrics">
+                <!-- JS -->
+            </div>
+        </div>
+    </div>
+
+
+    <!-- DOCKER / SUBSISTEMAS -->
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-box-seam text-primary" style="font-size:28px;"></i>
+                    <div class="fs-3 fw-bold mt-2" id="mContainers">—</div>
+                    <div class="text-muted small">Contenedores activos</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-database text-success" style="font-size:28px;"></i>
+                    <div class="fs-3 fw-bold mt-2" id="mPgConn">—</div>
+                    <div class="text-muted small">Conexiones a Postgres</div>
+                    <div class="text-muted small" id="mPgCache">Cache hit: —</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-lightning-charge text-danger" style="font-size:28px;"></i>
+                    <div class="fs-3 fw-bold mt-2" id="mRedisMem">—</div>
+                    <div class="text-muted small">Memoria Redis (MB)</div>
+                    <div class="text-muted small" id="mRedisHit">Hit ratio: —</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-speedometer2 text-info" style="font-size:28px;"></i>
+                    <div class="fs-3 fw-bold mt-2" id="mHttpP95">—</div>
+                    <div class="text-muted small">p95 latencia API (ms)</div>
+                    <div class="text-muted small" id="mHttpErr">Errores 5xx: —</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-diagram-3 text-warning" style="font-size:28px;"></i>
+                    <div class="fs-3 fw-bold mt-2" id="mCeleryWorkers">—</div>
+                    <div class="text-muted small">Workers Celery activos</div>
+                    <div class="text-muted small" id="mCeleryQueue">Cola: —</div>
+                    <div class="text-muted small" id="mCeleryTasks">Éxito: — · Fallidas: — · Reintentos: —</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- DATOS DE USUARIO -->
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-hdd-stack text-secondary" style="font-size:28px;"></i>
+                    <div class="fs-3 fw-bold mt-2" id="mDataTotal">—</div>
+                    <div class="text-muted small">Espacio total en datos/</div>
+                    <div class="text-muted small" id="mDataFreshness">Última actualización: —</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="mb-3"><i class="bi bi-people"></i> Top 5 usuarios por espacio ocupado</h6>
+                    <table class="table table-sm mb-0">
+                        <tbody id="topUsersBody">
+                            <tr><td class="text-muted">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- HISTÓRICO -->
+
+    <div class="card mb-4">
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Histórico</h5>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary range-btn active" data-range="24h">24h</button>
+                    <button class="btn btn-outline-primary range-btn" data-range="7d">7 días</button>
+                    <button class="btn btn-outline-primary range-btn" data-range="30d">30 días</button>
+                </div>
+            </div>
+
+            <div class="row g-3">
+
+                <div class="col-lg-4">
+                    <div class="border rounded-3 p-2">
+                        <div class="text-muted small mb-1">Servidor (CPU / RAM / Disco %)</div>
+                        <div style="height:220px;"><canvas id="chartServer"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="border rounded-3 p-2">
+                        <div class="text-muted small mb-1">Peticiones/s (API web)</div>
+                        <div style="height:220px;"><canvas id="chartRequests"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="border rounded-3 p-2">
+                        <div class="text-muted small mb-1">Latencia p95 (ms)</div>
+                        <div style="height:220px;"><canvas id="chartLatency"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="border rounded-3 p-2">
+                        <div class="text-muted small mb-1">Errores 5xx (%)</div>
+                        <div style="height:220px;"><canvas id="chartErrors"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="border rounded-3 p-2">
+                        <div class="text-muted small mb-1">Celery (tareas/s)</div>
+                        <div style="height:220px;"><canvas id="chartCelery"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="border rounded-3 p-2">
+                        <div class="text-muted small mb-1">Espacio en datos/ (GB)</div>
+                        <div style="height:220px;"><canvas id="chartData"></canvas></div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- ENLACES A DASHBOARDS COMPLETOS -->
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="mb-3"><i class="bi bi-graph-up"></i> Dashboards completos (por túnel)</h5>
+            <p class="text-muted">
+                Una vez montado el túnel, estos dashboards de la comunidad de Grafana cubren la mayoría de lo
+                que necesitas — impórtalos por ID desde Grafana (<em>Dashboards → New → Import</em>):
+            </p>
+            <ul class="text-muted">
+                <li><strong>Node Exporter Full</strong> — ID <code>1860</code> (CPU, RAM, disco, red, load, inodes...)</li>
+                <li><strong>Docker / cAdvisor</strong> — ID <code>14282</code> (CPU/memoria/IO/red por contenedor)</li>
+                <li><strong>PostgreSQL</strong> — ID <code>9628</code> (conexiones, locks, cache hit, WAL)</li>
+                <li><strong>Redis</strong> — ID <code>763</code> (memoria, hits/misses, comandos/s)</li>
+                <li><strong>Celery</strong> — no hay dashboard "oficial" de comunidad para este exporter, pero ya están confirmadas las métricas reales; monta un panel con <code>celery_worker_up</code>, <code>celery_queue_length</code>, <code>celery_active_process_count</code>, <code>rate(celery_task_succeeded_total[15m])</code> / <code>rate(celery_task_failed_total[15m])</code> y <code>histogram_quantile(0.95, sum(rate(celery_task_runtime_bucket[15m])) by (le))</code> para el p95 de duración</li>
+            </ul>
+            <p class="text-muted mb-0">
+                Para tus dos APIs (<code>fastapi-web</code> / <code>fastapi-admin</code>), como no hay un dashboard
+                "oficial" único, monta uno propio con <code>http_requests_total</code> y
+                <code>http_request_duration_seconds_bucket</code> (así sacas peticiones/s, p95/p99 y errores por
+                endpoint con <code>histogram_quantile</code>).
+            </p>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="/static/js/monitorizacion.js"></script>
+{% endblock %}

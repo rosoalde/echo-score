@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}Ajustes de Usuario - Social Insight AI{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-xl-10 col-lg-12">
+
+            <!-- ENCABEZADO -->
+            <div class="text-center mb-5">
+                <h2 class="fw-bold text-primary">
+                    <i class="bi bi-gear-fill"></i> Configuración de Usuario
+                </h2>
+                <p class="text-muted lead">
+                    Gestión de datos personales y permisos del sistema
+                </p>
+            </div>
+
+            <form method="POST" action="/ajustes">
+
+                <!-- 1. INFORMACIÓN PERSONAL -->
+                <div class="card shadow-sm border-0 mb-4">
+
+                    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+
+                        <!-- TÍTULO CLICKEABLE -->
+                        <h5 class="mb-0 text-secondary fw-bold">
+                            <a class="text-decoration-none text-secondary"
+                            data-bs-toggle="collapse"
+                            href="#collapsePersonal"
+                            role="button">
+                                <i class="bi bi-person me-2"></i> 1. Información personal
+                            </a>
+                        </h5>
+
+                        <!-- BOTÓN EDITAR -->
+                        <button type="button"
+                                class="btn btn-sm btn-outline-primary"
+                                onclick="toggleSection('personal', this)">
+                            Editar
+                        </button>
+                    </div>
+
+                    <div class="collapse" id="collapsePersonal">
+                        <div class="card-body p-4">
+                            <div class="row g-4">
+
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Nombre</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light">
+                                            <i class="bi bi-person"></i>
+                                        </span>
+                                        <input type="text"
+                                            class="form-control editable-personal"
+                                            name="first_name"
+                                            value="{{ user.first_name }}"
+                                            disabled>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Apellidos</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light">
+                                            <i class="bi bi-person-badge"></i>
+                                        </span>
+                                        <input type="text"
+                                            class="form-control editable-personal"
+                                            name="last_name"
+                                            value="{{ user.last_name }}"
+                                            disabled>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Teléfono</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light">
+                                            <i class="bi bi-telephone"></i>
+                                        </span>
+                                        <input type="text"
+                                            class="form-control editable-personal"
+                                            name="phone"
+                                            value="{{ user.phone }}"
+                                            disabled>
+                                    </div>
+                                </div>
+                                <div>
+
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Username</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light">
+                                            <i class="bi bi-at"></i>
+                                        </span>
+                                        <input type="text"
+                                            name="username"
+                                            class="form-control"
+                                            value="{{ user.username }}"
+                                            disabled>
+                                        </div>
+                                        <div class="form-text">El username no puede modificarse.</div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Email</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light">
+                                            <i class="bi bi-envelope"></i>
+                                        </span>
+                                        <input type="email"
+                                            name="email"
+                                            class="form-control"
+                                            value="{{ user.email }}"
+                                            disabled>
+                                        </div>
+                                        <div class="form-text">El email no puede modificarse.</div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 2. SEGURIDAD -->
+                <div class="card shadow-sm border-0 mb-4">
+
+                    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+
+                        <h5 class="mb-0 text-secondary fw-bold">
+                            <a class="text-decoration-none text-secondary"
+                            data-bs-toggle="collapse"
+                            href="#collapseSecurity">
+                                <i class="bi bi-shield-lock me-2"></i> 2. Seguridad
+                            </a>
+                        </h5>
+
+                        <button type="button"
+                                class="btn btn-sm btn-outline-primary"
+                                onclick="toggleSection('security', this)">
+                            Editar
+                        </button>
+                    </div>
+
+                    <div class="collapse" id="collapseSecurity">
+                        <div class="card-body p-4">
+
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Nueva contraseña</label>
+                                    <input type="password"
+                                        class="form-control editable-security"
+                                        name="new_password"
+                                        disabled>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Confirmar contraseña</label>
+                                    <input type="password"
+                                        class="form-control editable-security"
+                                        name="confirm_password"
+                                        disabled>
+                                </div>
+                            </div>
+
+                            <div class="form-text mt-3">
+                                Déjalo vacío si no deseas cambiar la contraseña.
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. ROL Y PERMISOS -->
+                <div class="card shadow-lg border-0 mb-5 border-start border-4 border-primary">
+
+                    <div class="card-header bg-primary bg-opacity-10 py-3 d-flex justify-content-between align-items-center">
+
+                        <h5 class="mb-0 text-primary fw-bold">
+                            <a class="text-decoration-none text-primary"
+                            data-bs-toggle="collapse"
+                            href="#collapseRole">
+                                <i class="bi bi-person-gear me-2"></i> 3. Rol y permisos
+                            </a>
+                        </h5>
+
+                        {% if user.role == "admin" %}
+                        <button type="button"
+                                class="btn btn-sm btn-outline-primary"
+                                onclick="toggleSection('role', this)">
+                            Editar
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    <div class="collapse" id="collapseRole">
+                        <div class="card-body p-4">
+
+                            {% if user.role == "admin" %}
+                            <select class="form-select editable-role"
+                                    name="role"
+                                    disabled>
+                                <option value="usuario" {% if user.role == "usuario" %}selected{% endif %}>Usuario</option>
+                                <option value="analista" {% if user.role == "analista" %}selected{% endif %}>Analista</option>
+                                <option value="admin" {% if user.role == "admin" %}selected{% endif %}>Administrador</option>
+                            </select>
+                            {% else %}
+
+                            <div class="alert alert-warning shadow-sm">
+                                <i class="bi bi-lock-fill me-2"></i>
+                                Solo los administradores pueden modificar el tipo de perfil.
+                            </div>
+
+                            <input type="text"
+                                class="form-control"
+                                value="{{ user.role | capitalize }}"
+                                disabled>
+                            {% endif %}
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACCIONES -->
+                <div class="d-grid gap-2 mb-5">
+                    <button type="submit"
+                            class="btn btn-success btn-lg py-3 fw-bold shadow">
+                        <i class="bi bi-save me-2"></i>
+                        GUARDAR CAMBIOS
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', path='ajustes.js') }}"></script>
+{% endblock %}

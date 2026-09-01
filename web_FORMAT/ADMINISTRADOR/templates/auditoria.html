@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+
+{% block title %}
+Auditoría
+{% endblock %}
+
+{% block page_title %}
+Auditoría
+{% endblock %}
+
+{% block breadcrumb %}
+
+<li class="breadcrumb-item">
+    <a href="/administracion">
+        Administración
+    </a>
+</li>
+
+<li class="breadcrumb-item active">
+    Auditoría
+</li>
+
+{% endblock %}
+
+{% block css %}
+<style>
+    .badge.bg-aceptacion { background-color: #6f42c1; color: #fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <!-- CABECERA + RESUMEN -->
+
+    <div class="card mb-4">
+
+        <div class="card-body">
+
+            <div class="row align-items-center g-3">
+
+                <div class="col-lg-5">
+
+                    <h3 class="mb-1">
+                        <i class="bi bi-shield-check"></i>
+                        Auditoría
+                    </h3>
+
+                    <div class="text-muted">
+                        Quién hizo qué, cuándo y desde dónde (login, usuarios, permisos, proyectos, seguridad...).
+                    </div>
+
+                </div>
+
+                <div class="col-lg-7">
+
+                    <div class="row g-2 text-center">
+
+                        <div class="col">
+                            <div class="p-2 rounded-3 bg-light">
+                                <div class="fs-4 fw-bold" id="summaryTotal">—</div>
+                                <div class="text-muted small">Total</div>
+                            </div>
+                        </div>
+
+                        <div class="col">
+                            <div class="p-2 rounded-3" style="background:#fdecea;">
+                                <div class="fs-4 fw-bold text-danger" id="summaryFailure">—</div>
+                                <div class="text-muted small">Fallos</div>
+                            </div>
+                        </div>
+
+                        <div class="col">
+                            <div class="p-2 rounded-3" style="background:#fff8e1;">
+                                <div class="fs-4 fw-bold text-warning" id="summarySecurity">—</div>
+                                <div class="text-muted small">Seguridad</div>
+                            </div>
+                        </div>
+
+                        <div class="col">
+                            <div class="p-2 rounded-3" style="background:#e8f4fd;">
+                                <div class="fs-4 fw-bold text-primary" id="summary24h">—</div>
+                                <div class="text-muted small">Últimas 24h</div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- TOOLBAR / FILTROS -->
+
+    <div class="card mb-3">
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <div class="col-xl-3">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input
+                            id="searchInput"
+                            class="form-control"
+                            placeholder="Buscar en el mensaje...">
+                    </div>
+                </div>
+
+                <div class="col-xl-2">
+                    <select id="filterCategory" class="form-select">
+                        <option value="">Todas las categorías</option>
+                        {% for c in categories %}
+                        <option value="{{ c }}">{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-xl-2">
+                    <select id="filterResult" class="form-select">
+                        <option value="">Todos los resultados</option>
+                        {% for r in results %}
+                        <option value="{{ r }}">{{ r }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-xl-2">
+                    <select id="filterActorType" class="form-select">
+                        <option value="">Todos los actores</option>
+                        {% for a in actor_types %}
+                        <option value="{{ a }}">{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-xl-2">
+                    <input
+                        id="filterActorUsername"
+                        class="form-control"
+                        placeholder="Usuario/admin...">
+                </div>
+
+                <div class="col-xl-1 text-end">
+                    <button class="btn btn-outline-primary" id="reloadAudit" title="Recargar">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
+
+            </div>
+
+            <div class="row g-3 mt-1">
+
+                <div class="col-xl-2">
+                    <select id="filterEventType" class="form-select">
+                        <option value="">Todos los eventos</option>
+                        {% for e in event_types %}
+                        <option value="{{ e }}">{{ e }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-xl-2">
+                    <input type="date" id="filterDateFrom" class="form-control" title="Desde">
+                </div>
+
+                <div class="col-xl-2">
+                    <input type="date" id="filterDateTo" class="form-control" title="Hasta">
+                </div>
+
+                <div class="col-xl-2">
+                    <select id="pageSize" class="form-select">
+                        <option value="25" selected>25 por página</option>
+                        <option value="50">50 por página</option>
+                        <option value="100">100 por página</option>
+                    </select>
+                </div>
+
+                <div class="col-xl-4 text-end">
+                    <button class="btn btn-outline-secondary btn-sm" id="resetFilters">
+                        <i class="bi bi-x-circle"></i>
+                        Limpiar filtros
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" id="purgeBlobsBtn">
+                        <i class="bi bi-file-earmark-x"></i>
+                        Purgar ficheros pesados antiguos
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- TABLA -->
+
+    <div class="card">
+
+        <div class="card-body p-0">
+
+            <!-- LOADING -->
+
+            <div id="tableLoading" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <div class="mt-3 text-muted">Cargando auditoría...</div>
+            </div>
+
+            <!-- SIN RESULTADOS -->
+
+            <div id="emptyState" class="text-center py-5" style="display:none;">
+                <i class="bi bi-shield-check" style="font-size:70px;color:#bbb;"></i>
+                <h4 class="mt-4">Sin registros</h4>
+                <p class="text-muted">
+                    No hay eventos de auditoría que coincidan con los filtros aplicados.
+                </p>
+            </div>
+
+            <!-- TABLA -->
+
+            <div id="tableContainer" class="table-responsive" style="display:none;">
+
+                <table class="table table-hover align-middle mb-0">
+
+                    <thead class="table-light">
+                        <tr>
+                            <th width="70">ID</th>
+                            <th width="150">Evento</th>
+                            <th width="160">Actor</th>
+                            <th width="160"> Mensaje</th>
+                            <th width="150">Objetivo</th>
+                            <th width="150">IP:Puerto</th>
+                            <th width="90">Detalle</th>
+                            <th width="170">Fecha</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="auditTableBody"></tbody>
+
+                </table>
+
+            </div>
+
+            <!-- PLANTILLA DE FILA -->
+
+            <template id="auditRowTemplate">
+                <tr>
+                    <td class="a-id text-muted"></td>
+                    <td>
+                        <div class="a-event fw-medium small"></div>
+                        <span class="badge a-result"></span>
+                        <span class="badge bg-light text-dark border a-category"></span>
+                    </td>
+                    <td>
+                        <span class="badge a-actor-type"></span>
+                        <div class="small text-muted a-actor-name"></div>
+                    </td>
+                    <td class="a-message" style="max-width:420px;word-break:break-word;"></td>
+                    <td class="a-target small text-muted"></td>
+                    <td class="a-ip small text-muted"></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-secondary btn-detail">
+                            <i class="bi bi-code-slash"></i>
+                        </button>
+                    </td>
+                    <td class="a-created text-muted small"></td>
+                </tr>
+            </template>
+
+        </div>
+
+        <div class="card-footer bg-white">
+            <div class="row">
+                <div class="col-md-6">
+                    <span id="tableSummary" class="text-muted">Mostrando 0 eventos</span>
+                </div>
+                <div class="col-md-6 text-end">
+                    <span id="lastRefresh" class="text-muted">—</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- PAGINACIÓN -->
+
+    <div class="card mt-3">
+        <div class="card-footer bg-white">
+            <nav>
+                <ul id="pagination" class="pagination justify-content-center mb-0"></ul>
+            </nav>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- MODAL: DETALLE DEL EVENTO -->
+
+<div class="modal fade" id="auditDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-shield-check"></i>
+                    Detalle del evento <span id="detailId" class="text-muted"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6"><strong>Evento:</strong> <span id="detailEvent"></span></div>
+                    <div class="col-md-6"><strong>Resultado:</strong> <span id="detailResult"></span></div>
+                    <div class="col-md-6"><strong>Actor:</strong> <span id="detailActor"></span></div>
+                    <div class="col-md-6"><strong>Objetivo:</strong> <span id="detailTarget"></span></div>
+                    <div class="col-md-6"><strong>IP:</strong> <span id="detailIp" class="small text-muted"></span></div>
+                    <div class="col-md-6"><strong>Puerto:</strong> <span id="detailPort" class="small text-muted"></span></div>
+                    <div class="col-md-6"><strong>User-Agent:</strong> <span id="detailUA" class="small text-muted"></span></div>
+                    <div class="col-md-6"><strong>Sesión:</strong> <span id="detailSession" class="small text-muted"></span></div>
+                    <div class="col-md-6"><strong>Request ID:</strong> <span id="detailRequestId" class="small text-muted"></span></div>
+                </div>
+
+                <div class="mb-3">
+                    <strong>Mensaje:</strong>
+                    <p id="detailMessage" class="mb-0"></p>
+                </div>
+
+                <div class="mb-2 d-flex justify-content-between align-items-center">
+                    <strong>Details:</strong>
+                    <span id="detailAttachmentBadge" class="badge bg-secondary" style="display:none;">
+                        Payload grande — leído de fichero
+                    </span>
+                </div>
+                <pre id="detailMeta" class="bg-light p-3 rounded-3 mb-0" style="max-height:300px;overflow:auto;"></pre>
+
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<!-- MODAL: PURGAR FICHEROS PESADOS -->
+
+<div class="modal fade" id="purgeBlobsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Purgar ficheros pesados antiguos
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <p>
+                    Se borrarán los <strong>ficheros de payload</strong> (details grandes offloadeados a disco)
+                    de eventos anteriores a:
+                </p>
+
+                <div class="input-group">
+                    <input type="number" id="purgeDays" class="form-control" value="180" min="1">
+                    <span class="input-group-text">días</span>
+                </div>
+
+                <p class="text-muted mt-3 mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    Las filas de auditoría <strong>no se borran</strong> — solo se libera el fichero pesado asociado.
+                </p>
+
+                <div id="purgeError" class="alert alert-danger mt-3 d-none"></div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-danger" id="confirmPurgeBtn">Sí, purgar</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/auditoria.js"></script>
+{% endblock %}

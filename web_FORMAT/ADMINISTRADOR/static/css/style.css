@@ -1,0 +1,10 @@
+.a-message{
+    max-width: 180px;
+    font-size: .9rem;
+
+    -webkit-line-clamp: 2; /* máximo 2 líneas */
+
+    overflow: hidden;
+    line-height: 1.2;
+    word-break: break-word;
+}

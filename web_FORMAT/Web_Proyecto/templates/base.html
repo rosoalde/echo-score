@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Social Insight AI{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}?v=2">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="bg-light">
+
+<div class="d-flex" id="wrapper">
+
+    <div id="sidebar-wrapper">
+        <div class="sidebar-heading">
+            <a href="/"><i class="bi bi-cpu-fill me-2"></i>Social Insight AI</a>
+        </div>
+        
+        <div class="list-group list-group-flush mt-2">
+            
+            <div class="sidebar-subheading">CAPTURA</div>
+            <a href="/analisis" class="list-group-item list-group-item-action">
+                <i class="bi bi-plus-circle me-2"></i> Nuevo proyecto
+            </a>
+
+            <div class="sidebar-subheading">GESTIÓN</div>
+            <a href="/mis-analisis" class="list-group-item list-group-item-action">
+                <i class="bi bi-folder2-open me-2"></i> Biblioteca
+            </a>
+
+        <div class="sidebar-subheading">WORKSPACE</div>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" 
+        data-bs-toggle="collapse" 
+        data-bs-target="#collapseDashboard" 
+        role="button" 
+        aria-expanded="false"
+        style="cursor: pointer;">
+            <span><i class="bi bi-speedometer2 me-2"></i> Dashboard resultados</span>
+            <i class="bi bi-chevron-down small"></i>
+        </a>
+
+        <div class="collapse" id="collapseDashboard">
+            <div id="sidebarProjectList" class="list-group list-group-flush ps-3">
+                <div class="py-2 px-3 small text-secondary fw-semibold text-center animate-pulse">
+                    <i class="bi bi-hourglass-split me-1"></i> Cargando proyectos...
+                </div>
+            </div>
+        </div>
+
+            <div class="sidebar-subheading">SUSCRIPCIONES</div>
+            <a href="/suscripciones" class="list-group-item list-group-item-action d-flex align-items-center">
+                <i class="bi bi-bag-heart me-2 text-primary"></i>
+                <span>Plan de suscripciones</span>
+            </a>
+
+            <div class="mt-auto pb-4">
+                <div class="sidebar-subheading">SISTEMA</div>
+                <a href="/configuracion" class="list-group-item list-group-item-action">
+                    <i class="bi bi-gear me-2"></i> Ajustes
+                </a>
+            </div>
+        </div>
+    </div>
+    <div id="page-content-wrapper">
+        
+        <nav class="top-navbar">
+            <div class="dropdown">
+                <button class="btn btn-link text-decoration-none dropdown-toggle text-dark fw-bold" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-person-circle me-1"></i> {{ user.username }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                    <li><a class="dropdown-item" href="/mis-analisis">Biblioteca</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><button class="dropdown-item text-danger" id="logoutBtn">Cerrar sesión</button></li>
+                </ul>
+            </div>
+        </nav>
+
+        <div class="container-fluid px-4 py-4">
+            {% block content %}{% endblock %}
+        </div>
+
+    </div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', path='base.js') }}"></script>
+
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>

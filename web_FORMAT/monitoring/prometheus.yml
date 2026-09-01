@@ -1,0 +1,49 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+
+  # El propio Prometheus
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Host: CPU, RAM, swap, disco, red, load average, filesystem, inodes...
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # Contenedores Docker: CPU/memoria/IO/red/reinicios por contenedor
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # PostgreSQL: conexiones, locks, cache hit, WAL, checkpoints...
+  - job_name: "postgres-exporter"
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+
+  # Redis: memoria, hits/misses, conexiones, comandos/s...
+  - job_name: "redis-exporter"
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+
+  # Celery: tareas ejecutadas, cola, workers activos/muertos, retries
+  - job_name: "celery-exporter"
+    static_configs:
+      - targets: ["celery-exporter:9808"]
+
+  # Web_Proyecto (main_FORMAT.py) -- peticiones/s, latencia, p95/p99, 4xx/5xx por endpoint
+  - job_name: "fastapi-web"
+    metrics_path: /_metrics_09_81
+    bearer_token_file: /etc/prometheus/secrets/metrics_token
+    static_configs:
+      - targets: ["api:8123"]
+
+  # ADMINISTRADOR (main_ADMIN.py) -- lo mismo, pero del panel admin
+  - job_name: "fastapi-admin"
+    metrics_path: /_metrics_09_81
+    bearer_token_file: /etc/prometheus/secrets/metrics_token
+    static_configs:
+      - targets: ["admin-api:8066"]

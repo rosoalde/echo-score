@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Etiquetado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0a0b0e;
+  --surface:  #111318;
+  --card:     #181b22;
+  --border:   #252830;
+  --border2:  #30343f;
+  --text:     #dde1ec;
+  --muted:    #6b7080;
+  --accent:   #4e7bef;
+  --accent2:  #7a9bf5;
+  --green:    #2ec27e;
+  --red:      #e05252;
+  --amber:    #e8962a;
+  --teal:     #28bfb0;
+  --purple:   #9b72ef;
+  --r:        8px;
+  --r2:       12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+code,kbd,pre,input[type=text],textarea,.mono{font-family:'IBM Plex Mono',monospace}
+
+/* ── LAYOUT ── */
+#app{display:flex;height:100vh;overflow:hidden}
+#sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column}
+#main{flex:1;overflow-y:auto}
+
+/* ── SIDEBAR ── */
+.sidebar-top{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
+.sidebar-brand{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;letter-spacing:0.08em;color:var(--text);text-transform:uppercase}
+.sidebar-sub{font-size:10px;color:var(--muted);margin-top:2px;font-family:'IBM Plex Mono',monospace}
+.sidebar-user{padding:12px 14px;background:var(--card);border-bottom:1px solid var(--border);display:none}
+.sidebar-user-name{font-size:13px;font-weight:500;color:var(--text)}
+.sidebar-user-role{font-size:10px;font-family:'IBM Plex Mono',monospace;margin-top:1px}
+.role-annotator{color:var(--accent2)}
+.role-reviewer{color:var(--purple)}
+.nav-section{padding:10px 12px 4px;font-size:9px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 12px;cursor:pointer;border-radius:var(--r);margin:1px 6px;color:var(--muted);font-size:12px;font-weight:500;transition:all 0.12s;user-select:none}
+.nav-item:hover{background:var(--card);color:var(--text)}
+.nav-item.active{background:rgba(78,123,239,0.15);color:var(--accent2)}
+.nav-item.disabled{opacity:0.35;cursor:not-allowed;pointer-events:none}
+.nav-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-pending{border:1.5px solid var(--border2)}
+.dot-active{background:var(--accent);box-shadow:0 0 5px var(--accent)}
+.dot-done{background:var(--green)}
+.dot-skip{background:var(--amber)}
+.sidebar-bottom{margin-top:auto;padding:12px;border-top:1px solid var(--border)}
+
+/* ── TOPBAR ── */
+.topbar{height:48px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 22px;gap:12px;flex-shrink:0;background:var(--surface)}
+.topbar-title{font-size:13px;font-weight:500;color:var(--text)}
+.topbar-sep{flex:1}
+
+/* ── BADGE ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:0.04em}
+.badge-blue{background:rgba(78,123,239,0.12);color:var(--accent2);border:1px solid rgba(78,123,239,0.3)}
+.badge-green{background:rgba(46,194,126,0.12);color:var(--green);border:1px solid rgba(46,194,126,0.3)}
+.badge-red{background:rgba(224,82,82,0.12);color:var(--red);border:1px solid rgba(224,82,82,0.3)}
+.badge-amber{background:rgba(232,150,42,0.12);color:var(--amber);border:1px solid rgba(232,150,42,0.3)}
+.badge-muted{background:var(--card);color:var(--muted);border:1px solid var(--border)}
+.badge-purple{background:rgba(155,114,239,0.12);color:var(--purple);border:1px solid rgba(155,114,239,0.3)}
+.badge-teal{background:rgba(40,191,176,0.12);color:var(--teal);border:1px solid rgba(40,191,176,0.3)}
+
+/* ── PAGES ── */
+.page{display:none;padding:22px;flex-direction:column;gap:18px}
+.page.active{display:flex}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:20px}
+.card-sm{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.card-label{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:10px}
+
+/* ── BUTTONS ── */
+button{cursor:pointer;border:none;outline:none;font-family:'IBM Plex Sans',sans-serif}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--r);font-size:12px;font-weight:500;cursor:pointer;transition:all 0.12s;border:1px solid transparent}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:#3d6ae0}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--card);color:var(--text)}
+.btn-success{background:rgba(46,194,126,0.12);color:var(--green);border:1px solid rgba(46,194,126,0.3)}
+.btn-success:hover{background:rgba(46,194,126,0.22)}
+.btn-danger{background:rgba(224,82,82,0.12);color:var(--red);border:1px solid rgba(224,82,82,0.3)}
+.btn-danger:hover{background:rgba(224,82,82,0.22)}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:6px}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+
+/* ── FORMS ── */
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:0.04em}
+input[type=text],input[type=date],select,textarea{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  color:var(--text);padding:8px 11px;font-size:13px;width:100%;
+  transition:border-color 0.12s;outline:none;font-family:'IBM Plex Sans',sans-serif}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:60px}
+select option{background:var(--card)}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.flex{display:flex;gap:8px;align-items:center}
+
+/* ── KEYWORD LIST ── */
+.kw-item{display:flex;align-items:flex-start;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;transition:border-color 0.12s;margin-bottom:6px}
+.kw-item.accepted{border-color:rgba(46,194,126,0.4)}
+.kw-item.rejected{border-color:rgba(224,82,82,0.2);opacity:0.55}
+.kw-item.human{border-color:rgba(78,123,239,0.4)}
+.kw-word{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--text)}
+.kw-reason{font-size:11px;color:var(--muted);margin-top:2px}
+.kw-langs{font-size:10px;color:var(--accent2);margin-top:2px;font-family:'IBM Plex Mono',monospace}
+
+/* ── RECORD CARDS ── */
+.record-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:16px;transition:border-color 0.2s;margin-bottom:12px}
+.record-card.saved{display:none} /* Saved records disappear from view */
+.record-meta{display:flex;align-items:center;gap:7px;margin-bottom:10px;flex-wrap:wrap}
+.record-content{font-size:13px;line-height:1.7;color:var(--text);background:var(--card);border-radius:var(--r);padding:12px;margin:10px 0;border-left:3px solid var(--border2)}
+.record-content.neg{border-left-color:var(--red)}
+.record-content.pos{border-left-color:var(--green)}
+.record-content.neu{border-left-color:var(--muted)}
+
+/* ── LLM CONTEXT BLOCK ── */
+.llm-ctx{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:10px;font-size:11px}
+.llm-ctx-label{font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:5px}
+.llm-ctx-source{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--amber);padding-bottom:4px;margin-bottom:5px;border-bottom:1px solid var(--border)}
+.llm-ctx-parent{border-left:2px solid var(--border2);padding-left:8px;color:var(--muted);margin-bottom:4px;font-size:11px}
+.llm-ctx-parent strong{color:var(--text)}
+
+/* ── SENTIMENT BUTTONS ── */
+.sent-btns{display:flex;gap:7px;margin:8px 0;flex-wrap:wrap}
+.sent-btn{flex:1;min-width:70px;padding:9px 6px;border-radius:var(--r);border:1.5px solid var(--border);font-size:11px;font-weight:500;cursor:pointer;transition:all 0.12s;text-align:center;background:var(--card);color:var(--muted);font-family:'IBM Plex Sans',sans-serif}
+.sent-btn:hover{border-color:var(--border2);color:var(--text)}
+.sent-btn[data-v="1"].sel{background:rgba(46,194,126,0.1);border-color:var(--green);color:var(--green)}
+.sent-btn[data-v="-1"].sel{background:rgba(224,82,82,0.1);border-color:var(--red);color:var(--red)}
+.sent-btn[data-v="0"].sel{background:rgba(107,112,128,0.15);border-color:var(--muted);color:var(--text)}
+.sent-btn[data-v="2"].sel{background:var(--surface);border-color:var(--border2);color:var(--muted)}
+.sent-icon{font-size:16px;display:block;margin-bottom:2px}
+
+/* ── PILLAR GRID ── */
+.pillar-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.pillar-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:11px}
+.pillar-name{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px}
+.pillar-btns{display:flex;gap:4px}
+.pillar-btn{flex:1;padding:6px 3px;border-radius:5px;border:1.5px solid var(--border);font-size:11px;font-weight:500;cursor:pointer;transition:all 0.12s;text-align:center;background:var(--surface);color:var(--muted);font-family:'IBM Plex Sans',sans-serif}
+.pillar-btn:hover{border-color:var(--border2);color:var(--text)}
+.pillar-btn[data-v="1"].sel{background:rgba(46,194,126,0.1);border-color:var(--green);color:var(--green)}
+.pillar-btn[data-v="-1"].sel{background:rgba(224,82,82,0.1);border-color:var(--red);color:var(--red)}
+.pillar-btn[data-v="0"].sel{background:rgba(107,112,128,0.15);border-color:var(--muted);color:var(--text)}
+.pillar-btn[data-v="2"].sel{background:var(--surface);border-color:var(--border2);color:var(--muted)}
+.llm-val{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:4px}
+
+/* ── REASON BOX ── */
+.reason-box{display:none;margin-top:7px}
+.reason-box.show{display:block}
+.reason-note{font-size:10px;color:var(--amber);margin-bottom:4px}
+
+/* ── PROGRESS ── */
+.progress-track{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin:6px 0}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s}
+.progress-fill.green{background:var(--green)}
+
+/* ── STAT ROW ── */
+.stat-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)}
+.stat-row:last-child{border-bottom:none}
+.stat-label{font-size:12px;color:var(--muted)}
+.stat-val{font-size:12px;font-weight:600;font-family:'IBM Plex Mono',monospace;color:var(--text)}
+
+/* ── TIPO BADGE ── */
+.tipo-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:0.08em;font-family:'IBM Plex Mono',monospace}
+.tipo-post{background:rgba(78,123,239,0.12);color:var(--accent2);border:1px solid rgba(78,123,239,0.25)}
+.tipo-comment{background:rgba(40,191,176,0.12);color:var(--teal);border:1px solid rgba(40,191,176,0.25)}
+.tipo-video{background:rgba(224,82,82,0.12);color:var(--red);border:1px solid rgba(224,82,82,0.25)}
+
+/* ── MODAL ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:22px;max-width:460px;width:90%;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:15px;margin-bottom:14px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-icon{font-size:32px;margin-bottom:12px}
+.empty-title{font-size:15px;font-weight:500;color:var(--text);margin-bottom:6px}
+.empty-desc{font-size:13px;color:var(--muted)}
+
+/* ── FILE PILL ── */
+.file-pill{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:100px;font-size:10px;font-family:'IBM Plex Mono',monospace;background:var(--card);border:1px solid var(--border);color:var(--muted);margin:2px}
+.file-pill.ok{color:var(--green);border-color:rgba(46,194,126,0.3);background:rgba(46,194,126,0.06)}
+.file-pill.warn{color:var(--amber);border-color:rgba(232,150,42,0.3);background:rgba(232,150,42,0.06)}
+
+/* ── ANALYSIS ITEM ── */
+.analysis-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;cursor:pointer;transition:border-color 0.15s;margin-bottom:6px}
+.analysis-item:hover{border-color:var(--accent)}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:20px;right:20px;background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:10px 16px;font-size:12px;z-index:200;display:none;animation:fadeUp 0.2s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── LOGIN SCREEN ── */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:32px;width:360px}
+.login-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.login-heading{font-size:22px;font-weight:600;color:var(--text);margin-bottom:24px}
+.login-divider{height:1px;background:var(--border);margin:16px 0}
+
+/* ── ROLE SELECTOR ── */
+.role-option{display:flex;align-items:center;gap:10px;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all 0.12s;margin-bottom:7px}
+.role-option:hover{border-color:var(--border2)}
+.role-option.selected{border-color:var(--accent)}
+.role-option.selected.reviewer{border-color:var(--purple)}
+.role-icon{font-size:18px;width:24px;text-align:center}
+.role-label{font-size:13px;font-weight:500;color:var(--text)}
+.role-desc{font-size:11px;color:var(--muted)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+
+/* ── CONTEXT HEADER ── */
+.context-header {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--purple);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.context-header-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--purple);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.context-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  font-size: 12px;
+}
+.context-grid strong { color: var(--muted); font-weight: 500; }
+.context-grid span { color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN SCREEN ═══════════════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-title">Panel de etiquetado</div>
+    <div class="login-heading">¿Quién eres?</div>
+
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="form-label">Tu nombre</label>
+      <input type="text" id="login-name" placeholder="Ej: Ana García" autofocus>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <label class="form-label" style="margin-bottom:8px;display:block">Rol</label>
+      <div class="role-option selected" id="role-annotator" onclick="selectRole('annotator')">
+        <span class="role-icon">✏️</span>
+        <div>
+          <div class="role-label">Anotador/a</div>
+          <div class="role-desc">Revisa y etiqueta los datos</div>
+        </div>
+      </div>
+      <div class="role-option" id="role-reviewer" onclick="selectRole('reviewer')">
+        <span class="role-icon">🔍</span>
+        <div>
+          <div class="role-label">Revisor/a</div>
+          <div class="role-desc">Supervisa el trabajo del equipo</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="doLogin()">
+      Entrar →
+    </button>
+    <div id="login-error" style="display:none;margin-top:10px;font-size:12px;color:var(--red)"></div>
+  </div>
+</div>
+
+<!-- ═══ APP ════════════════════════════════════════════════════════════════ -->
+<div id="app">
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sidebar-top">
+    <div class="sidebar-brand">Etiquetado</div>
+    <div class="sidebar-sub">annotation studio v2.3</div>
+  </div>
+
+  <div id="sidebar-user-block" class="sidebar-user">
+    <div class="sidebar-user-name" id="sb-username">—</div>
+    <div class="sidebar-user-role" id="sb-userrole">—</div>
+  </div>
+
+  <div class="nav-section">Proyecto</div>
+  <div class="nav-item active" onclick="showPage('projects')" id="nav-projects">
+    <span class="nav-dot dot-active"></span> Proyectos
+  </div>
+
+  <div class="nav-section">Fases</div>
+  <div class="nav-item disabled" onclick="showPage('keywords')" id="nav-keywords">
+    <span class="nav-dot dot-pending" id="dot-kw"></span> Palabras clave
+  </div>
+  <div class="nav-item disabled" onclick="showPage('sentiment')" id="nav-sentiment">
+    <span class="nav-dot dot-pending" id="dot-sent"></span> Sentimiento
+  </div>
+  <div class="nav-item disabled" onclick="showPage('pillars')" id="nav-pillars">
+    <span class="nav-dot dot-pending" id="dot-pil"></span> Pilares
+  </div>
+
+  <div class="nav-section" id="nav-section-revisor" style="display:none">Revisión</div>
+  <div class="nav-item disabled" onclick="showPage('review')" id="nav-review" style="display:none">
+    <span class="nav-dot dot-pending"></span> Ver anotaciones
+  </div>
+
+  <div class="sidebar-bottom">
+    <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="logout()">
+      Cerrar sesión
+    </button>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div id="main">
+
+<!-- ─── PROJECTS ────────────────────────────────────────────────── -->
+<div id="page-projects" class="page active">
+  <div class="topbar">
+    <span class="topbar-title">Proyectos disponibles</span>
+    <span class="topbar-sep"></span>
+    <button class="btn btn-ghost btn-sm" onclick="loadProjects()">↻ Actualizar</button>
+  </div>
+  <div style="max-width:760px;display:flex;flex-direction:column;gap:14px">
+
+    <div class="card-sm" style="border-left:3px solid var(--accent);border-radius:0 var(--r) var(--r) 0;background:var(--surface)">
+      <div style="font-size:12px;color:var(--text);line-height:1.7">
+        Selecciona un proyecto para empezar a etiquetar.
+        Si ya habías trabajado en él, tu progreso se recupera automáticamente.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Proyectos del sistema</div>
+      <div id="projects-list">
+        <div style="color:var(--muted);font-size:13px">Cargando...</div>
+      </div>
+    </div>
+
+    <!-- Vinculación manual (solo para reveiwers o si no hay proyectos) -->
+    <div class="card" id="manual-link-card">
+      <div class="card-label">Vincular carpeta manualmente</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+        Introduce la ruta absoluta de una carpeta de análisis ya procesada.
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input type="text" id="manual-folder-input"
+          placeholder="/ruta/a/la/carpeta"
+          style="flex:1;font-family:'IBM Plex Mono',monospace;font-size:12px"
+          oninput="previewFolder(this.value)">
+        <button class="btn btn-ghost btn-sm" onclick="linkManualFolder()" style="flex-shrink:0">Vincular</button>
+      </div>
+      <div id="folder-preview-box" style="display:none;margin-top:8px">
+        <div id="folder-preview-files"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── KEYWORDS ────────────────────────────────────────────────── -->
+<div id="page-keywords" class="page">
+  <div class="topbar">
+    <span class="topbar-title">Palabras clave</span>
+    <span class="topbar-sep"></span>
+    <span class="badge badge-blue" id="kw-project-badge">—</span>
+    <span class="badge badge-muted" id="kw-progress-badge">0 / 0</span>
+  </div>
+  <div style="max-width:860px;display:flex;flex-direction:column;gap:16px">
+
+    <div id="kw-context-container"></div>
+
+    <div class="card-sm" style="background:var(--surface);border-left:3px solid var(--green);border-radius:0 var(--r) var(--r) 0">
+      <div style="font-size:12px;color:var(--text);line-height:1.7">
+        <strong style="color:var(--green)">Cómo revisar:</strong>
+        Marca cada término como <strong style="color:var(--green)">válido ✓</strong> o
+        <strong style="color:var(--red)">descartado ✗</strong> (escribe por qué).
+        Cuando guardes, la tarjeta desaparece. Puedes cerrar y retomar en cualquier momento.
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div class="card-label" style="margin:0">Términos del proyecto (<span id="kw-count">0</span> pendientes)</div>
+        <div class="flex">
+          <button class="btn btn-sm btn-success" onclick="acceptAllKw()">✓ Aceptar todos</button>
+        </div>
+      </div>
+      <div id="kw-list">
+        <div class="empty-state">
+          <div class="empty-icon">🔑</div>
+          <div class="empty-title">Sin términos cargados</div>
+          <div class="empty-desc">Selecciona un proyecto primero</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="kw-done-card" style="display:none">
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:24px;margin-bottom:8px">✅</div>
+        <div style="font-size:14px;font-weight:500;color:var(--green)">Todas las palabras clave revisadas</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Continúa con la siguiente fase</div>
+        <button class="btn btn-primary" style="margin-top:14px" onclick="showPage('sentiment')">
+          Ir a sentimiento →
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── SENTIMENT ────────────────────────────────────────────────── -->
+<div id="page-sentiment" class="page">
+  <div class="topbar">
+    <span class="topbar-title">Etiquetado de sentimiento</span>
+    <span class="topbar-sep"></span>
+    <span class="badge badge-muted" id="sent-progress-badge">0 pendientes</span>
+    <button class="btn btn-sm btn-ghost" onclick="loadSentimentRecords()">↻ Cargar</button>
+  </div>
+  <div style="max-width:900px;display:flex;flex-direction:column;gap:16px">
+
+    <div id="sent-context-container"></div>
+
+    <div class="card-sm" style="background:var(--surface)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <span style="font-size:11px;color:var(--muted)">Progreso</span>
+        <span style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text)" id="sent-pct">0%</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="sent-progress-bar" style="width:0%"></div></div>
+      <div style="display:flex;gap:14px;margin-top:7px">
+        <span style="font-size:10px;color:var(--green)">✓ <span id="sent-confirmed">0</span></span>
+        <span style="font-size:10px;color:var(--amber)">⚑ <span id="sent-corrected">0</span> corregidos</span>
+        <span style="font-size:10px;color:var(--muted)">◻ <span id="sent-pending">0</span> pendientes</span>
+      </div>
+      <div id="sent-hidden-msg" style="font-size:10px;color:var(--accent2);margin-top:6px;display:none"></div>
+    </div>
+
+    <div id="sent-empty" class="empty-state" style="display:none">
+      <div class="empty-icon">🎉</div>
+      <div class="empty-title">¡Todo revisado!</div>
+      <div class="empty-desc">No quedan registros pendientes de sentimiento</div>
+      <button class="btn btn-primary" style="margin-top:14px" onclick="showPage('pillars')">
+        Ir a pilares →
+      </button>
+    </div>
+
+    <div id="sent-loading" style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0">
+      Selecciona un proyecto y pulsa "Cargar" para empezar.
+    </div>
+    <div id="sent-records" style="display:flex;flex-direction:column;gap:13px"></div>
+  </div>
+</div>
+
+<!-- ─── PILLARS ────────────────────────────────────────────────── -->
+<div id="page-pillars" class="page">
+  <div class="topbar">
+    <span class="topbar-title">Pilares de aceptación</span>
+    <span class="topbar-sep"></span>
+    <span class="badge badge-muted" id="pil-progress-badge">0 pendientes</span>
+    <button class="btn btn-sm btn-ghost" onclick="loadPillarRecords()">↻ Cargar</button>
+  </div>
+  <div style="max-width:900px;display:flex;flex-direction:column;gap:16px">
+
+    <div id="pil-context-container"></div>
+
+    <div class="card-sm" style="background:var(--surface);border-left:3px solid var(--teal);border-radius:0 var(--r) var(--r) 0">
+      <div style="font-size:12px;color:var(--text);line-height:1.7">
+        <strong style="color:var(--teal)">Pilares de aceptación política</strong> —
+        Clasifica cada dimensión: <strong>+1 a favor</strong> · <strong>0 neutro</strong> · <strong>−1 en contra</strong> · <strong>N/A</strong>.
+        Los datos se cargan desde los archivos <code style="font-size:11px">*_pilares.csv</code>.
+      </div>
+    </div>
+
+    <div id="pil-hidden-msg" style="font-size:11px;color:var(--accent2);display:none;padding:0 4px"></div>
+
+    <div id="pil-empty" class="empty-state" style="display:none">
+      <div class="empty-icon">🏆</div>
+      <div class="empty-title">¡Todo revisado!</div>
+      <div class="empty-desc">No quedan pilares pendientes</div>
+    </div>
+
+    <div id="pil-loading" style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0">
+      Pulsa "Cargar" para empezar.
+    </div>
+    <div id="pil-records" style="display:flex;flex-direction:column;gap:13px"></div>
+  </div>
+</div>
+
+<!-- ─── REVIEW (REVISOR ONLY) ─────────────────────────────────── -->
+<div id="page-review" class="page">
+  <div class="topbar">
+    <span class="topbar-title">Revisión de anotaciones</span>
+    <span class="topbar-sep"></span>
+    <button class="btn btn-sm btn-ghost" onclick="loadReviewData()">↻ Actualizar</button>
+  </div>
+  <div style="max-width:980px;display:flex;flex-direction:column;gap:16px">
+
+    <div class="grid-2">
+      <div class="card-sm">
+        <div class="card-label">Resumen global</div>
+        <div id="review-stats"><div style="color:var(--muted);font-size:13px">Cargando...</div></div>
+      </div>
+      <div class="card-sm">
+        <div class="card-label">Por anotador</div>
+        <div id="review-by-annotator"><div style="color:var(--muted);font-size:13px">—</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Anotaciones del equipo (LLM vs Humano)</div>
+      <div id="review-annotations-list" style="display:flex;flex-direction:column;gap:10px;max-height:500px;overflow-y:auto;padding-right:5px">
+        <div style="color:var(--muted);font-size:13px">Cargando...</div>
+      </div>
+    </div>
+
+    <!-- Export for reviewer -->
+    <div class="card">
+      <div class="card-label">Exportar datos de entrenamiento</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+        Genera el archivo de entrenamiento en formato <span class="mono">Alpaca JSONL</span>
+        con todas las correcciones del equipo. Las correcciones rechazadas por el revisor serán ignoradas.
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="exportData('jsonl')">↓ Descargar JSONL</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportData('csv')">↓ Descargar CSV</button>
+      </div>
+      <div id="export-preview" style="display:none;margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);white-space:pre-wrap;word-break:break-all;max-height:180px;overflow-y:auto"></div>
+    </div>
+
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ─── MODAL: Motivo ── -->
+<div class="modal-bg" id="reason-modal">
+  <div class="modal">
+    <h3 id="reason-modal-title">Motivo</h3>
+    <div class="form-group">
+      <label class="form-label">Escribe el motivo <span style="color:var(--red)">*</span></label>
+      <textarea id="reason-modal-input" rows="3" placeholder="Explica brevemente..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeReasonModal()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="confirmReason()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONFIG & STATE
+   ═══════════════════════════════════════════════════════════════════════════ */
+const API = window.location.origin;
+
+const S = {
+  user:        null,   // { name, role }
+  session:     null,   // current annotation session object from API
+  project:     null,   // { id, project_name, output_folder, tema, ... }
+  records:     [],     // loaded sentiment records
+  pilRecords:  [],     // loaded pillar records
+  kwItems:     [],     // loaded keyword items
+
+  // Local annotation state (not yet saved)
+  sentAnnotations:   {},  // rec.id -> { corrected_sentiment, correction_reason, corrected_topic, topic_reason }
+  pillarAnnotations: {},  // rec.id -> { pilar -> { value, reason } }
+
+  // Saved record ids (hide from view)
+  savedSent:   new Set(),
+  savedPil:    new Set(),
+  savedKw:     new Set(),
+};
+
+// Variable global para guardar los proyectos y evitar inyección HTML en el onclick
+window._currentAnalyses = [];
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOGIN
+   ═══════════════════════════════════════════════════════════════════════════ */
+let _selectedRole = 'annotator';
+
+function selectRole(role) {
+  _selectedRole = role;
+  document.getElementById('role-annotator').classList.toggle('selected', role === 'annotator');
+  document.getElementById('role-reviewer').classList.toggle('selected', role === 'reviewer');
+  document.getElementById('role-annotator').classList.toggle('reviewer', false);
+  document.getElementById('role-reviewer').classList.toggle('reviewer', role === 'reviewer');
+}
+
+function doLogin() {
+  const name = document.getElementById('login-name').value.trim();
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if (!name) { errEl.textContent = 'Escribe tu nombre para continuar.'; errEl.style.display = 'block'; return; }
+  S.user = { name, role: _selectedRole };
+  // Persist in sessionStorage so refresh doesn't log out
+  sessionStorage.setItem('annotation_user', JSON.stringify(S.user));
+  applyUser();
+  document.getElementById('login-screen').style.display = 'none';
+  loadProjects();
+}
+
+function applyUser() {
+  if (!S.user) return;
+  const { name, role } = S.user;
+  document.getElementById('sb-username').textContent = name;
+  document.getElementById('sb-userrole').textContent = role === 'reviewer' ? '● Revisor/a' : '● Anotador/a';
+  document.getElementById('sb-userrole').className = role === 'reviewer' ? 'sidebar-user-role role-reviewer' : 'sidebar-user-role role-annotator';
+  document.getElementById('sidebar-user-block').style.display = 'block';
+
+  if (role === 'reviewer') {
+    document.getElementById('nav-section-revisor').style.display = 'block';
+    document.getElementById('nav-review').style.display = 'flex';
+    enableNav('review');
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem('annotation_user');
+  S.user = null;
+  S.session = null;
+  S.project = null;
+  location.reload();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   NAVIGATION
+   ═══════════════════════════════════════════════════════════════════════════ */
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const pageEl = document.getElementById('page-' + name);
+  if (pageEl) pageEl.classList.add('active');
+  const navEl = document.getElementById('nav-' + name);
+  if (navEl) navEl.classList.add('active');
+  if (name === 'review') loadReviewData();
+}
+
+function enableNav(name) {
+  const el = document.getElementById('nav-' + name);
+  if (el) el.classList.remove('disabled');
+}
+
+function setDot(dotId, state) {
+  const el = document.getElementById('dot-' + dotId);
+  if (!el) return;
+  el.className = 'nav-dot dot-' + state;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   API HELPERS
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  const text = await r.text();
+  if (!r.ok) throw new Error(r.status + ': ' + text.slice(0, 200));
+  return JSON.parse(text);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PROJECTS & CONTEXT
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function loadProjects() {
+  const list = document.getElementById('projects-list');
+  list.innerHTML = '<div style="color:var(--muted);font-size:13px">Cargando...</div>';
+
+  let userSessions = [];
+  try {
+    const sessions = await api('GET', '/api/sessions');
+    userSessions = sessions.filter(s => s.annotator_name === S.user?.name);
+  } catch(e) {}
+
+  try {
+    const analyses = await api('GET', '/api/main/analyses');
+    if (analyses.error || !analyses.length) {
+      list.innerHTML = '<div class="empty-state"><div class="empty-icon">📂</div><div class="empty-title">No hay proyectos disponibles</div><div class="empty-desc">Vincula una carpeta manualmente abajo</div></div>';
+      return;
+    }
+
+    window._currentAnalyses = analyses;
+
+    list.innerHTML = analyses.map((a, index) => {
+      const existingSession = userSessions.find(s => s.output_folder === a.output_folder ||
+        (s.output_folder && s.output_folder.endsWith(a.output_folder.split('/').pop())));
+      const hasProgress = !!existingSession;
+      const phase = existingSession?.phase;
+
+      return `
+      <div class="analysis-item${a.tiene_datos ? '' : ' no-data'}"
+           onclick="${a.tiene_datos ? `selectProject(${index}, '${existingSession?.id || ''}')` : ''}"
+           title="${a.tiene_datos ? 'Clic para abrir' : 'Sin datos procesados'}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+          <div>
+            <div style="font-size:13px;font-weight:500;margin-bottom:2px">${escHtml(a.project_name || a.tema)}</div>
+            <div style="font-size:11px;color:var(--muted)">${escHtml(a.tema)}</div>
+            <div style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:3px">
+              📂 …/${(a.output_folder || '').split('/').slice(-2).join('/')}
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+            <span class="badge ${a.tiene_datos ? 'badge-green' : 'badge-muted'}">
+              ${a.tiene_datos ? '✓ listo' : 'sin datos'}
+            </span>
+            ${hasProgress ? `<span class="badge badge-blue">↩ retomar (${phaseLabelShort(phase)})</span>` : ''}
+          </div>
+        </div>
+        ${a.archivos_analizado?.length ? `<div style="margin-top:6px">${a.archivos_analizado.map(f=>`<span class="file-pill ok">📄 ${escHtml(f)}</span>`).join('')}</div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = `<div style="color:var(--red);font-size:13px">Error: ${e.message}</div>`;
+  }
+}
+
+function phaseLabelShort(p) {
+  return {keywords:'keywords',keyword_review:'keywords',analysis_pending:'análisis',
+    scraping:'análisis',sentiment_review:'sentimiento',done:'completado'}[p] || p;
+}
+
+function renderProjectContext() {
+  if (!S.project) return;
+  const kws = S.project.keywords || [];
+  const kwStr = kws.map(k => typeof k === 'object' ? k.keyword : k).join(', ');
+  
+  const html = `
+    <div class="context-header">
+      <div class="context-header-title">Contexto global del LLM</div>
+      <div class="context-grid">
+        <div><strong>Tema:</strong> <span>${escHtml(S.project.tema || '—')}</span></div>
+        <div><strong>Ámbito:</strong> <span>${escHtml(S.project.population_scope || 'GLOBAL')}</span></div>
+        <div style="grid-column:1/-1"><strong>Descripción:</strong> <span>${escHtml(S.project.desc_tema || '—')}</span></div>
+        <div style="grid-column:1/-1"><strong>Keywords:</strong> <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent2)">${escHtml(kwStr || '—')}</span></div>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('kw-context-container').innerHTML = html;
+  document.getElementById('sent-context-container').innerHTML = html;
+  document.getElementById('pil-context-container').innerHTML = html;
+}
+
+async function selectProject(index, existingSessionId) {
+  const analysis = window._currentAnalyses[index];
+  S.project = analysis;
+
+  try {
+    if (existingSessionId) {
+      S.session = await api('GET', '/api/sessions/' + existingSessionId);
+    } else {
+      S.session = await api('POST', '/api/sessions', {
+        annotator_name: S.user.name,
+        annotator_role: S.user.role,
+        tema: analysis.tema || analysis.project_name || '',
+        desc_tema: analysis.desc_tema || '',
+        population_scope: analysis.population_scope || '',
+        languages: analysis.languages || ['Castellano'],
+        keywords: analysis.keywords || []
+      });
+      await api('POST', '/api/sessions/' + S.session.id + '/link-folder', {
+        output_folder: analysis.output_folder
+      });
+      S.session = await api('GET', '/api/sessions/' + S.session.id);
+    }
+  } catch(e) {
+    toast('Error abriendo proyecto: ' + e.message, 'warn');
+    return;
+  }
+
+  enableNav('keywords');
+  enableNav('sentiment');
+  enableNav('pillars');
+  setDot('kw', 'active');
+
+  document.getElementById('kw-project-badge').textContent = (analysis.project_name || analysis.tema || '').slice(0, 28);
+  renderProjectContext();
+
+  toast('Proyecto cargado: ' + (analysis.project_name || analysis.tema));
+  showPage('keywords');
+  loadKeywords();
+}
+
+async function linkManualFolder() {
+  const folder = document.getElementById('manual-folder-input').value.trim();
+  if (!folder || !S.user) { toast('Introduce la ruta y accede primero', 'warn'); return; }
+
+  try {
+    S.session = await api('POST', '/api/sessions', {
+      annotator_name: S.user.name,
+      annotator_role: S.user.role,
+      tema: folder.split('/').pop(),
+      population_scope: '',
+      languages: ['Castellano'],
+    });
+    const r = await api('POST', '/api/sessions/' + S.session.id + '/link-folder', { output_folder: folder });
+    S.session = await api('GET', '/api/sessions/' + S.session.id);
+    S.project = { output_folder: folder, project_name: folder.split('/').pop(), tema: folder.split('/').pop() };
+
+    enableNav('keywords'); enableNav('sentiment'); enableNav('pillars');
+    setDot('kw', 'active');
+    renderProjectContext();
+    toast('Carpeta vinculada ✓');
+    showPage('keywords');
+    loadKeywords();
+  } catch(e) {
+    toast('Error: ' + e.message, 'warn');
+  }
+}
+
+// Live folder preview
+let _previewTimer = null;
+async function previewFolder(path) {
+  clearTimeout(_previewTimer);
+  const box = document.getElementById('folder-preview-box');
+  if (!path || path.length < 5) { box.style.display = 'none'; return; }
+  _previewTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(`${API}/api/folder-preview?path=${encodeURIComponent(path)}`);
+      const info = await r.json();
+      box.style.display = 'block';
+      const files = document.getElementById('folder-preview-files');
+      let html = '';
+      if (!info.exists) { files.innerHTML = '<span class="file-pill warn">⚠ No encontrada</span>'; return; }
+      if (info.lista_para_anotar) html += '<span class="file-pill ok">✓ Lista</span>';
+      if (info.archivos_analizado?.length) html += info.archivos_analizado.map(f=>`<span class="file-pill ok">📄 ${f}</span>`).join('');
+      if (info.archivos_pilares?.length) html += info.archivos_pilares.map(f=>`<span class="file-pill ok">📊 ${f}</span>`).join('');
+      if (info.archivos_raw?.length) html += info.archivos_raw.map(f=>`<span class="file-pill warn">🗃 ${f}</span>`).join('');
+      files.innerHTML = html || '<span class="file-pill">Sin archivos CSV</span>';
+    } catch(e) {}
+  }, 400);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KEYWORDS
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function loadKeywords() {
+  if (!S.session) return;
+  document.getElementById('kw-list').innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center">Cargando...</div>';
+
+  let doneSoFar = new Set();
+  try {
+    const kwAnns = await api('GET', '/api/keywords/list?session_id=' + S.session.id).catch(() => []);
+    if (Array.isArray(kwAnns)) {
+      kwAnns.forEach(a => doneSoFar.add(a.keyword));
+    }
+  } catch(e) {}
+
+  const generated = S.session.generated_keywords || [];
+  const finalKws  = S.session.final_keywords || [];
+  let kwSource = generated.length ? generated : finalKws;
+
+  S.kwItems = kwSource.filter(kw => {
+    const word = typeof kw === 'object' ? kw.keyword : kw;
+    return !doneSoFar.has(word) && !S.savedKw.has(word);
+  });
+
+  renderKeywords();
+  document.getElementById('kw-progress-badge').textContent = `${doneSoFar.size} guardados`;
+}
+
+function renderKeywords() {
+  const list = document.getElementById('kw-list');
+  const doneCard = document.getElementById('kw-done-card');
+
+  if (!S.kwItems.length) {
+    list.innerHTML = '';
+    doneCard.style.display = 'block';
+    document.getElementById('kw-count').textContent = '0';
+    setDot('kw', 'done');
+    return;
+  }
+
+  doneCard.style.display = 'none';
+  document.getElementById('kw-count').textContent = S.kwItems.length;
+
+  list.innerHTML = S.kwItems.map((kw, i) => {
+    const word   = typeof kw === 'object' ? kw.keyword : kw;
+    const reason = typeof kw === 'object' ? (kw.razon_tema || kw.razon || '') : '';
+    const langs  = typeof kw === 'object' ? (kw.languages || '') : '';
+    return `
+    <div class="kw-item" id="kwi-${i}">
+      <div style="flex:1">
+        <div class="kw-word">${escHtml(word)}</div>
+        ${reason ? `<div class="kw-reason">${escHtml(reason)}</div>` : ''}
+        ${langs ? `<div class="kw-langs">${escHtml(langs)}</div>` : ''}
+        <div class="reason-box" id="kw-reason-${i}">
+          <div class="reason-note">Motivo del descarte:</div>
+          <textarea rows="2" placeholder="Por qué no es útil este término..." id="kw-reason-text-${i}"
+            style="font-size:11px;min-height:40px"></textarea>
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;flex-shrink:0;margin-top:2px">
+        <button class="btn btn-sm btn-success" onclick="saveKw(${i}, true)">✓</button>
+        <button class="btn btn-sm btn-danger" onclick="toggleKwReject(${i})">✗</button>
+        <button class="btn btn-sm btn-ghost" id="kw-confirm-btn-${i}" style="display:none" onclick="saveKw(${i}, false)">Guardar descarte</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleKwReject(i) {
+  const rb = document.getElementById('kw-reason-' + i);
+  const cb = document.getElementById('kw-confirm-btn-' + i);
+  rb.classList.toggle('show');
+  cb.style.display = rb.classList.contains('show') ? 'inline-flex' : 'none';
+}
+
+async function saveKw(i, accepted) {
+  if (!S.session) return;
+  const kw   = S.kwItems[i];
+  const word = typeof kw === 'object' ? kw.keyword : kw;
+  if (!accepted) {
+    const reason = document.getElementById('kw-reason-text-' + i)?.value.trim();
+    if (!reason) { toast('Escribe el motivo del descarte', 'warn'); return; }
+    await api('POST', '/api/keywords/decide', {
+      session_id: S.session.id, keyword: word, accepted: false,
+      reason, annotator_name: S.user.name
+    });
+  } else {
+    await api('POST', '/api/keywords/decide', {
+      session_id: S.session.id, keyword: word, accepted: true,
+      annotator_name: S.user.name
+    });
+  }
+  S.savedKw.add(word);
+  S.kwItems.splice(i, 1);
+  renderKeywords();
+  toast(accepted ? '✓ Guardado' : '✗ Descartado');
+}
+
+async function acceptAllKw() {
+  if (!S.kwItems.length) return;
+  for (const kw of S.kwItems) {
+    const word = typeof kw === 'object' ? kw.keyword : kw;
+    await api('POST', '/api/keywords/decide', {
+      session_id: S.session.id, keyword: word, accepted: true,
+      annotator_name: S.user.name
+    });
+    S.savedKw.add(word);
+  }
+  S.kwItems = [];
+  renderKeywords();
+  toast('Todos aceptados ✓');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SENTIMENT
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function loadSentimentRecords() {
+  if (!S.session) { toast('Selecciona un proyecto primero', 'warn'); return; }
+  document.getElementById('sent-loading').style.display = 'block';
+  document.getElementById('sent-loading').textContent = '⟳ Cargando registros...';
+  document.getElementById('sent-records').innerHTML = '';
+  document.getElementById('sent-hidden-msg').style.display = 'none';
+
+  try {
+    const anns = await api('GET', '/api/sessions/' + S.session.id + '/annotated-ids');
+    anns.sentiment.forEach(id => S.savedSent.add(id));
+    anns.pillar.forEach(id => S.savedPil.add(id));
+
+    const r = await api('GET', '/api/sessions/' + S.session.id + '/records?limit=5000');
+    
+    const totalLoaded = r.records.length;
+    S.records = r.records.filter(rec => !S.savedSent.has(rec.id));
+    const hiddenCount = totalLoaded - S.records.length;
+    
+    const msg = document.getElementById('sent-hidden-msg');
+    if (hiddenCount > 0) {
+      msg.textContent = `ℹ ${hiddenCount} registros ya anotados han sido ocultados.`;
+      msg.style.display = 'block';
+    } else {
+      msg.style.display = 'none';
+    }
+    
+    document.getElementById('sent-loading').style.display = S.records.length ? 'none' : 'block';
+    if (!S.records.length) {
+      document.getElementById('sent-loading').style.display = 'none';
+      document.getElementById('sent-empty').style.display = 'flex';
+      document.getElementById('sent-empty').style.flexDirection = 'column';
+      document.getElementById('sent-empty').style.alignItems = 'center';
+    }
+    renderSentimentRecords();
+    toast('Cargados ' + S.records.length + ' registros pendientes');
+  } catch(e) {
+    document.getElementById('sent-loading').textContent = '❌ Error: ' + e.message;
+    toast('Error al cargar', 'warn');
+  }
+}
+
+const SENT_OPTS = [{v:1,icon:'↑',label:'Positivo'},{v:-1,icon:'↓',label:'Negativo'},{v:0,icon:'→',label:'Neutro'},{v:2,icon:'✕',label:'No relac.'}];
+function sentLabel(v) { return {1:'↑ Positivo','-1':'↓ Negativo',0:'→ Neutro',2:'✕ No relac.'}[String(v)] || v; }
+function sentColor(v) { return {1:'var(--green)','-1':'var(--red)',0:'var(--muted)',2:'var(--border2)'}[String(v)] || 'var(--muted)'; }
+function platColor(p) { return {reddit:'#ff4500',bluesky:'#0085ff',youtube:'#ff0000',twitter:'#1da1f2'}[(p||'').toLowerCase()] || 'var(--muted)'; }
+function platIcon(p)  { return {reddit:'🔴',bluesky:'🔵',youtube:'▶',twitter:'🐦'}[(p||'').toLowerCase()] || '🌐'; }
+function tipoIcon(t) {
+  if (!t) return '';
+  const u = t.toUpperCase();
+  if (u === 'VIDEO') return '<span class="tipo-badge tipo-video">🎬 VIDEO</span>';
+  if (u === 'COMENTARIO') return '<span class="tipo-badge tipo-comment">💬 COMENTARIO</span>';
+  return '<span class="tipo-badge tipo-post">📌 POST</span>';
+}
+
+function renderLlmCtx(rec) {
+  const plat = (rec.platform || '').toLowerCase();
+  const tipo = (rec.tipo || 'POST').toUpperCase();
+  const isComment = tipo === 'COMENTARIO';
+  let html = '<div class="llm-ctx"><div class="llm-ctx-label">Contexto que recibió el modelo</div>';
+  if (rec.fuente) html += `<div class="llm-ctx-source">[FUENTE] ${escHtml(rec.fuente)}</div>`;
+  
+  if (isComment) {
+    if (plat === 'reddit' && (rec.titulo_padre || rec.cuerpo_padre)) {
+      html += '<div class="llm-ctx-parent">';
+      if (rec.titulo_padre) html += `<strong>[TÍTULO POST]</strong> ${escHtml(rec.titulo_padre)}<br>`;
+      if (rec.cuerpo_padre) html += `[CUERPO] ${escHtml(rec.cuerpo_padre.slice(0, 200))}${rec.cuerpo_padre.length > 200 ? '…' : ''}`;
+      html += '</div>';
+    } else if (plat === 'youtube' && (rec.titulo_padre || rec.descripcion_padre)) {
+      html += '<div class="llm-ctx-parent">';
+      if (rec.titulo_padre) html += `<strong>[TÍTULO VIDEO]</strong> ${escHtml(rec.titulo_padre)}<br>`;
+      if (rec.descripcion_padre) html += `[DESCRIPCIÓN] ${escHtml(rec.descripcion_padre.slice(0, 200))}${rec.descripcion_padre.length > 200 ? '…' : ''}`;
+      html += '</div>';
+    } else if ((plat === 'bluesky' || plat === 'twitter') && rec.tweet_anterior) {
+      html += `<div class="llm-ctx-parent"><strong>[POST ANTERIOR]</strong> ${escHtml(rec.tweet_anterior.slice(0, 200))}</div>`;
+    }
+  }
+  
+  if (!isComment && plat === 'youtube' && (rec.titulo_padre || rec.descripcion_padre)) {
+    html += '<div class="llm-ctx-parent">';
+    if (rec.titulo_padre) html += `<strong>[TÍTULO]</strong> ${escHtml(rec.titulo_padre)}<br>`;
+    if (rec.descripcion_padre) html += `[DESCRIPCIÓN] ${escHtml(rec.descripcion_padre.slice(0, 200))}${rec.descripcion_padre.length > 200 ? '…' : ''}`;
+    html += '</div>';
+  }
+  
+  html += '</div>';
+  return html;
+}
+
+function renderSentimentRecords() {
+  const container = document.getElementById('sent-records');
+  updateSentProgress();
+
+  if (!S.records.length) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = S.records.map((rec, i) => {
+    if (S.savedSent.has(rec.id)) return ''; // Skip saved
+    const ann = S.sentAnnotations[rec.id] || {};
+    const sv  = rec.sentiment_llm;
+    const cls = sv === 1 ? 'pos' : sv === -1 ? 'neg' : 'neu';
+
+    return `
+    <div class="record-card" id="srec-${i}">
+      <div class="record-meta">
+        <span style="font-size:12px;font-weight:600;color:${platColor(rec.platform)}">${platIcon(rec.platform)} ${escHtml(rec.platform || '?')}</span>
+        ${tipoIcon(rec.tipo)}
+        ${rec.idioma_ia ? `<span style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace">${escHtml(rec.idioma_ia)}</span>` : ''}
+        <span style="font-size:10px;color:var(--muted)">${escHtml(rec.fecha || '')}</span>
+        <span class="badge" style="background:${sentColor(sv)}22;color:${sentColor(sv)};border:1px solid ${sentColor(sv)}44;font-size:9px">
+          IA: ${sentLabel(sv)}
+        </span>
+      </div>
+
+      ${renderLlmCtx(rec)}
+
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:3px">[Contenido a clasificar]</div>
+      <div class="record-content ${cls}">${escHtml(rec.content)}</div>
+
+      <div style="font-size:10px;color:var(--muted);margin:8px 0 3px">Sentimiento:</div>
+      <div class="sent-btns">
+        ${SENT_OPTS.map(b => {
+          const annV = ann.corrected_sentiment;
+          const isSel = annV !== undefined ? annV === b.v : sv === b.v;
+          return `<button class="sent-btn${isSel ? ' sel' : ''}" data-v="${b.v}" onclick="selectSent(${i},${b.v})">
+            <span class="sent-icon">${b.icon}</span>${b.label}
+          </button>`;
+        }).join('')}
+      </div>
+      <div class="reason-box${ann.correction_reason ? ' show' : ''}" id="sent-reason-${i}">
+        <div class="reason-note">⚑ Corregido — ¿por qué se equivocó el modelo?</div>
+        <textarea rows="2" placeholder="Ej: El texto es irónico, el modelo no lo detectó..."
+          style="font-size:11px" onchange="updateSentReason(${i},this.value)">${escHtml(ann.correction_reason || '')}</textarea>
+      </div>
+
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+        <div class="form-group">
+          <label class="form-label" style="color:var(--teal)">Tema/topic (corregir si es incorrecto)</label>
+          <input type="text"
+            value="${escHtml(ann.corrected_topic !== undefined ? ann.corrected_topic : (rec.topic_llm || ''))}"
+            placeholder="Ej: coste excesivo, impacto medioambiental..."
+            style="font-size:12px"
+            onchange="updateTopic(${i}, this.value)">
+        </div>
+        <div class="reason-box${(ann.corrected_topic !== undefined && ann.corrected_topic !== rec.topic_llm) ? ' show' : ''}" id="topic-reason-${i}">
+          <div class="reason-note" style="color:var(--teal)">Motivo del cambio de tema:</div>
+          <textarea rows="1" style="font-size:11px" placeholder="Por qué cambias el topic..."
+            onchange="updateTopicReason(${i},this.value)">${escHtml(ann.topic_reason || '')}</textarea>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:12px">
+        <button class="btn btn-sm btn-primary" onclick="saveSentiment(${i})">Guardar y siguiente →</button>
+      </div>
+    </div>`;
+  }).filter(Boolean).join('');
+}
+
+function selectSent(recIdx, value) {
+  const rec = S.records[recIdx];
+  if (!rec) return;
+  if (!S.sentAnnotations[rec.id]) S.sentAnnotations[rec.id] = {};
+  S.sentAnnotations[rec.id].corrected_sentiment = value;
+  const isCorr = value !== rec.sentiment_llm;
+  S.sentAnnotations[rec.id].is_correction = isCorr;
+  const card = document.getElementById('srec-' + recIdx);
+  if (!card) return;
+  card.querySelectorAll('.sent-btn').forEach(btn => btn.classList.toggle('sel', parseInt(btn.dataset.v) === value));
+  document.getElementById('sent-reason-' + recIdx)?.classList.toggle('show', isCorr);
+}
+
+function updateSentReason(i, val) {
+  const rec = S.records[i]; if (!rec) return;
+  if (!S.sentAnnotations[rec.id]) S.sentAnnotations[rec.id] = {};
+  S.sentAnnotations[rec.id].correction_reason = val;
+}
+function updateTopic(i, val) {
+  const rec = S.records[i]; if (!rec) return;
+  if (!S.sentAnnotations[rec.id]) S.sentAnnotations[rec.id] = {};
+  S.sentAnnotations[rec.id].corrected_topic = val;
+  const isTopicCorr = val !== (rec.topic_llm || '');
+  document.getElementById('topic-reason-' + i)?.classList.toggle('show', isTopicCorr);
+}
+function updateTopicReason(i, val) {
+  const rec = S.records[i]; if (!rec) return;
+  if (!S.sentAnnotations[rec.id]) S.sentAnnotations[rec.id] = {};
+  S.sentAnnotations[rec.id].topic_reason = val;
+}
+
+async function saveSentiment(recIdx) {
+  const rec = S.records[recIdx];
+  if (!rec) return;
+  const ann = S.sentAnnotations[rec.id] || {};
+  const corrSent  = ann.corrected_sentiment !== undefined ? ann.corrected_sentiment : rec.sentiment_llm;
+  const isCorr    = corrSent !== rec.sentiment_llm;
+  const corrTopic = ann.corrected_topic !== undefined ? ann.corrected_topic : rec.topic_llm;
+  const isTopicCorr = corrTopic !== rec.topic_llm;
+
+  if (isCorr && !ann.correction_reason) { toast('Escribe el motivo de la corrección de sentimiento', 'warn'); return; }
+  if (isTopicCorr && !ann.topic_reason) { toast('Escribe el motivo del cambio de tema', 'warn'); return; }
+
+  try {
+    await api('POST', '/api/annotations/sentiment', {
+      session_id:          S.session.id,
+      record_id:           String(rec.id),
+      content:             rec.content,
+      original_sentiment:  rec.sentiment_llm,
+      corrected_sentiment: corrSent,
+      is_correction:       isCorr,
+      correction_reason:   ann.correction_reason || null,
+      original_topic:      rec.topic_llm || null,
+      corrected_topic:     corrTopic,
+      topic_reason:        ann.topic_reason || null,
+      annotator_name:      S.user.name,
+      platform:            rec.platform || null,
+    });
+    S.savedSent.add(rec.id);
+    // Hide the card
+    const card = document.getElementById('srec-' + recIdx);
+    if (card) {
+      card.style.transition = 'opacity 0.2s, max-height 0.3s';
+      card.style.opacity = '0';
+      setTimeout(() => { card.style.display = 'none'; }, 250);
+    }
+    updateSentProgress();
+    toast('Guardado ✓');
+
+    // Check if all done
+    const remaining = S.records.filter(r => !S.savedSent.has(r.id));
+    if (!remaining.length) {
+      setTimeout(() => {
+        document.getElementById('sent-empty').style.display = 'flex';
+        document.getElementById('sent-empty').style.flexDirection = 'column';
+        document.getElementById('sent-empty').style.alignItems = 'center';
+        setDot('sent', 'done');
+      }, 400);
+    }
+  } catch(e) { toast('Error: ' + e.message, 'warn'); }
+}
+
+function updateSentProgress() {
+  const total       = S.records.length;
+  const done        = S.savedSent.size;
+  const corrections = Object.values(S.sentAnnotations).filter(a => a.is_correction).length;
+  const pending     = total - done;
+  const pct         = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('sent-progress-badge').textContent = `${pending} pendientes`;
+  document.getElementById('sent-progress-bar').style.width   = pct + '%';
+  document.getElementById('sent-pct').textContent            = pct + '%';
+  document.getElementById('sent-confirmed').textContent      = done - corrections;
+  document.getElementById('sent-corrected').textContent      = corrections;
+  document.getElementById('sent-pending').textContent        = pending;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PILLARS  — load from *_pilares.csv via get_records endpoint
+   ═══════════════════════════════════════════════════════════════════════════ */
+const PILLARS = [
+  { key: 'legitimacion',            label: 'Legitimación',       desc: '¿Es legal/legítima?' },
+  { key: 'efectividad',             label: 'Efectividad',        desc: '¿Funciona?' },
+  { key: 'justicia_equidad',        label: 'Justicia y equidad', desc: '¿Es justa?' },
+  { key: 'confianza_institucional', label: 'Confianza instit.',  desc: '¿Confía en los responsables?' },
+];
+
+function pillarLabel(v) { return {1:'+1','-1':'-1',0:'0',2:'N/A'}[String(v)] || '—'; }
+
+async function loadPillarRecords() {
+  if (!S.session) { toast('Selecciona un proyecto primero', 'warn'); return; }
+  document.getElementById('pil-loading').style.display = 'block';
+  document.getElementById('pil-loading').textContent = '⟳ Cargando registros de pilares...';
+  document.getElementById('pil-records').innerHTML = '';
+  document.getElementById('pil-hidden-msg').style.display = 'none';
+
+  try {
+    const anns = await api('GET', '/api/sessions/' + S.session.id + '/annotated-ids');
+    anns.sentiment.forEach(id => S.savedSent.add(id));
+    anns.pillar.forEach(id => S.savedPil.add(id));
+
+    const r = await api('GET', '/api/sessions/' + S.session.id + '/records?limit=5000');
+    
+    const allPilRecords = r.records.filter(rec => rec.legitimacion !== null && rec.legitimacion !== undefined);
+    S.pilRecords = allPilRecords.filter(rec => !S.savedPil.has(rec.id));
+    
+    const hiddenCount = allPilRecords.length - S.pilRecords.length;
+    const msg = document.getElementById('pil-hidden-msg');
+    if (hiddenCount > 0) {
+      msg.textContent = `ℹ ${hiddenCount} registros ya anotados han sido ocultados.`;
+      msg.style.display = 'block';
+    } else {
+      msg.style.display = 'none';
+    }
+    
+    document.getElementById('pil-loading').style.display = 'none';
+    if (!S.pilRecords.length) {
+      document.getElementById('pil-empty').style.display = 'flex';
+      document.getElementById('pil-empty').style.flexDirection = 'column';
+      document.getElementById('pil-empty').style.alignItems = 'center';
+    }
+    renderPillarRecords();
+    document.getElementById('pil-progress-badge').textContent = `${S.pilRecords.length} pendientes`;
+    toast('Cargados ' + S.pilRecords.length + ' registros con pilares');
+  } catch(e) {
+    document.getElementById('pil-loading').textContent = '❌ Error: ' + e.message;
+  }
+}
+
+function renderPillarRecords() {
+  const container = document.getElementById('pil-records');
+  container.innerHTML = S.pilRecords.map((rec, i) => {
+    if (S.savedPil.has(rec.id)) return '';
+    const pann = S.pillarAnnotations[rec.id] || {};
+    return `
+    <div class="record-card" id="prec-${i}">
+      <div class="record-meta">
+        <span style="font-size:12px;font-weight:600;color:${platColor(rec.platform)}">${platIcon(rec.platform)} ${escHtml(rec.platform || '?')}</span>
+        ${tipoIcon(rec.tipo)}
+        <span style="font-size:10px;color:var(--muted)">${escHtml(rec.fecha || '')}</span>
+      </div>
+      ${renderLlmCtx(rec)}
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:3px">[Contenido]</div>
+      <div class="record-content">${escHtml(rec.content.slice(0, 300))}${rec.content.length > 300 ? '…' : ''}</div>
+
+      <div class="pillar-grid">
+        ${PILLARS.map(p => {
+          const llmVal = rec[p.key];
+          const pRec   = pann[p.key] || {};
+          const selVal = pRec.value !== undefined ? pRec.value : (llmVal !== undefined ? llmVal : null);
+          return `
+          <div class="pillar-card">
+            <div class="pillar-name">${p.label}</div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${p.desc}</div>
+            <div class="pillar-btns">
+              ${[{v:1,l:'+1'},{v:0,l:'0'},{v:-1,l:'−1'},{v:2,l:'N/A'}].map(b =>
+                `<button class="pillar-btn${selVal === b.v ? ' sel' : ''}" data-v="${b.v}"
+                  onclick="selectPillar(${i},'${p.key}',${b.v})">${b.l}</button>`
+              ).join('')}
+            </div>
+            <div class="llm-val">IA: ${pillarLabel(llmVal)}${pRec.is_correction ? ' → corregido' : ''}</div>
+            <div class="reason-box${pRec.is_correction ? ' show' : ''}" id="preason-${i}-${p.key}">
+              <textarea rows="1" placeholder="Motivo..." style="font-size:11px;min-height:36px"
+                onchange="updatePillarReason(${i},'${p.key}',this.value)">${escHtml(pRec.reason || '')}</textarea>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:12px">
+        <button class="btn btn-sm btn-primary" onclick="savePillars(${i})">Guardar y siguiente →</button>
+      </div>
+    </div>`;
+  }).filter(Boolean).join('');
+}
+
+function selectPillar(recIdx, pillarKey, value) {
+  const rec = S.pilRecords[recIdx]; if (!rec) return;
+  if (!S.pillarAnnotations[rec.id]) S.pillarAnnotations[rec.id] = {};
+  if (!S.pillarAnnotations[rec.id][pillarKey]) S.pillarAnnotations[rec.id][pillarKey] = {};
+  S.pillarAnnotations[rec.id][pillarKey].value        = value;
+  S.pillarAnnotations[rec.id][pillarKey].is_correction = value !== rec[pillarKey];
+  const card = document.getElementById('prec-' + recIdx);
+  if (!card) return;
+  // Update button states for this pillar only
+  card.querySelectorAll('.pillar-card').forEach(pc => {
+    const nm = pc.querySelector('.pillar-name')?.textContent;
+    const pk = PILLARS.find(p => p.label === nm)?.key;
+    if (pk !== pillarKey) return;
+    pc.querySelectorAll('.pillar-btn').forEach(btn => btn.classList.toggle('sel', parseInt(btn.dataset.v) === value));
+  });
+  const rb = document.getElementById(`preason-${recIdx}-${pillarKey}`);
+  if (rb) rb.classList.toggle('show', value !== rec[pillarKey]);
+}
+
+function updatePillarReason(i, key, val) {
+  const rec = S.pilRecords[i]; if (!rec) return;
+  if (!S.pillarAnnotations[rec.id]) S.pillarAnnotations[rec.id] = {};
+  if (!S.pillarAnnotations[rec.id][key]) S.pillarAnnotations[rec.id][key] = {};
+  S.pillarAnnotations[rec.id][key].reason = val;
+}
+
+async function savePillars(recIdx) {
+  const rec  = S.pilRecords[recIdx]; if (!rec) return;
+  const pann = S.pillarAnnotations[rec.id] || {};
+
+  for (const p of PILLARS) {
+    const pRec = pann[p.key];
+    if (!pRec || pRec.value === undefined) continue;
+    if (pRec.is_correction && !pRec.reason) {
+      toast(`Escribe el motivo para "${p.label}"`, 'warn'); return;
+    }
+    await api('POST', '/api/annotations/pillar', {
+      session_id:       S.session.id,
+      record_id:        String(rec.id),
+      content:          rec.content,
+      pillar:           p.key,
+      original_value:   rec[p.key] !== undefined ? rec[p.key] : 2,
+      corrected_value:  pRec.value,
+      is_correction:    pRec.is_correction,
+      correction_reason: pRec.reason || null,
+      annotator_name:   S.user.name,
+    });
+  }
+
+  S.savedPil.add(rec.id);
+  const card = document.getElementById('prec-' + recIdx);
+  if (card) {
+    card.style.opacity = '0';
+    card.style.transition = 'opacity 0.2s';
+    setTimeout(() => { card.style.display = 'none'; }, 250);
+  }
+  const remaining = S.pilRecords.filter(r => !S.savedPil.has(r.id));
+  document.getElementById('pil-progress-badge').textContent = `${remaining.length} pendientes`;
+  if (!remaining.length) {
+    setTimeout(() => {
+      document.getElementById('pil-empty').style.display = 'flex';
+      document.getElementById('pil-empty').style.flexDirection = 'column';
+      document.getElementById('pil-empty').style.alignItems = 'center';
+      setDot('pil', 'done');
+    }, 400);
+  }
+  toast('Pilares guardados ✓');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REVIEWER — stats & corrections
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function loadReviewData() {
+  if (S.user?.role !== 'reviewer') return;
+  try {
+    const stats = await api('GET', '/api/stats');
+    document.getElementById('review-stats').innerHTML = `
+      <div class="stat-row"><span class="stat-label">Sesiones</span><span class="stat-val">${stats.total_sessions}</span></div>
+      <div class="stat-row"><span class="stat-label">Anotaciones sentimiento</span><span class="stat-val">${stats.total_sentiment_annotations}</span></div>
+      <div class="stat-row"><span class="stat-label">Anotaciones pilares</span><span class="stat-val">${stats.total_pillar_annotations}</span></div>
+      <div class="stat-row"><span class="stat-label">Correcciones al modelo</span><span class="stat-val" style="color:var(--amber)">${stats.corrections}</span></div>
+    `;
+
+    const sessions = await api('GET', '/api/sessions');
+    const byAnnotator = {};
+    sessions.forEach(s => {
+      const name = s.annotator_name;
+      if (!byAnnotator[name]) byAnnotator[name] = { sessions: 0, phase: s.phase };
+      byAnnotator[name].sessions++;
+    });
+    document.getElementById('review-by-annotator').innerHTML = Object.entries(byAnnotator).map(([name, data]) =>
+      `<div class="stat-row">
+        <span class="stat-label">${escHtml(name)}</span>
+        <span class="stat-val">${data.sessions} sesión(es)</span>
+      </div>`
+    ).join('') || '<div style="color:var(--muted);font-size:12px">Sin anotadores todavía</div>';
+
+  } catch(e) {}
+
+  if (S.session) {
+    try {
+      const anns = await api('GET', '/api/sessions/' + S.session.id + '/annotations');
+      const list = document.getElementById('review-annotations-list');
+      
+      // Filtrar las que ya han sido revisadas
+      const pending = anns.filter(a => !a.reviewer_decision);
+      
+      if (!pending.length) {
+        list.innerHTML = '<div style="color:var(--green);font-size:13px;text-align:center;padding:20px 0">✅ No hay correcciones pendientes de revisar en este proyecto.</div>';
+      } else {
+        list.innerHTML = pending.map(a => {
+          let title, orig, corr, content;
+          if (a.review_category === 'keyword') {
+            title = 'Palabra Clave';
+            content = `Keyword: ${a.keyword}`;
+            if (a.type === 'human_added') {
+              orig = 'N/A (No existía)';
+              corr = 'Añadida por humano';
+            } else {
+              orig = 'Generada por IA';
+              corr = 'Rechazada por humano';
+            }
+          } else if (a.review_category === 'sentiment') {
+            title = 'Sentimiento / Topic';
+            content = a.content;
+            orig = `Sent: ${sentLabel(a.original_sentiment)} | Topic: ${a.original_topic || '-'}`;
+            corr = `Sent: ${sentLabel(a.corrected_sentiment)} | Topic: ${a.corrected_topic || '-'}`;
+          } else if (a.review_category === 'pillar') {
+            title = `Pilar: ${a.pillar}`;
+            content = a.content;
+            orig = pillarLabel(a.original_value);
+            corr = pillarLabel(a.corrected_value);
+          }
+          
+          return `
+          <div class="record-card" id="rev-${a.id}" style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+              <span class="badge badge-purple">${title}</span>
+              <span style="font-size:10px;color:var(--muted)">👤 Anotador: ${escHtml(a.annotator_name)}</span>
+            </div>
+            <div class="record-content" style="margin:8px 0">${escHtml(content.slice(0, 200))}${content.length > 200 ? '...' : ''}</div>
+            <div class="grid-2" style="margin-bottom:10px;font-size:11px">
+              <div style="background:var(--bg);padding:8px;border-radius:4px;border:1px solid var(--border)">
+                <div style="color:var(--muted);margin-bottom:4px">🤖 Original (LLM)</div>
+                <div>${orig}</div>
+              </div>
+              <div style="background:rgba(78,123,239,0.1);padding:8px;border-radius:4px;border:1px solid rgba(78,123,239,0.3)">
+                <div style="color:var(--accent2);margin-bottom:4px">👤 Corrección</div>
+                <div>${corr}</div>
+              </div>
+            </div>
+            ${a.correction_reason || a.reason ? `
+            <div style="font-size:11px;color:var(--amber);margin-bottom:12px">
+              <strong>Motivo del anotador:</strong> ${escHtml(a.correction_reason || a.reason)}
+            </div>` : ''}
+            <div style="display:flex;gap:8px;justify-content:flex-end">
+              <button class="btn btn-sm btn-danger" onclick="submitReview('${a.id}', '${a.review_category}', 'reject')">✗ Rechazar corrección</button>
+              <button class="btn btn-sm btn-success" onclick="submitReview('${a.id}', '${a.review_category}', 'accept')">✓ Aceptar corrección</button>
+            </div>
+          </div>
+          `;
+        }).join('');
+      }
+    } catch(e) {
+      console.error(e);
+    }
+  }
+}
+
+async function submitReview(id, type, decision) {
+  try {
+    await api('POST', '/api/annotations/review', {
+      annotation_id: id,
+      annotation_type: type,
+      decision: decision,
+      reviewer_name: S.user.name
+    });
+    
+    const card = document.getElementById('rev-' + id);
+    if (card) {
+      card.style.opacity = '0';
+      setTimeout(() => { card.style.display = 'none'; }, 200);
+    }
+    toast(decision === 'accept' ? 'Corrección aceptada ✓' : 'Corrección rechazada ✗');
+  } catch(e) {
+    toast('Error: ' + e.message, 'warn');
+  }
+}
+
+async function exportData(format) {
+  if (!S.session) { toast('Selecciona un proyecto', 'warn'); return; }
+  try {
+    const r = await api('GET', '/api/sessions/' + S.session.id + '/export/lora?format=' + format);
+    const preview = document.getElementById('export-preview');
+    preview.style.display = 'block';
+    preview.textContent = r.data.split('\n').slice(0, 5).join('\n');
+
+    const blob = new Blob([r.data], { type: format === 'csv' ? 'text/csv' : 'application/x-ndjson' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `entrenamiento_${S.session.id.slice(0, 8)}_${Date.now()}.${format === 'csv' ? 'csv' : 'jsonl'}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Descargado: ' + r.count + ' ejemplos');
+  } catch(e) { toast('Error: ' + e.message, 'warn'); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODAL
+   ═══════════════════════════════════════════════════════════════════════════ */
+let _reasonCb = null;
+function openReasonModal(title, cb) {
+  document.getElementById('reason-modal-title').textContent = title;
+  document.getElementById('reason-modal-input').value = '';
+  _reasonCb = cb;
+  document.getElementById('reason-modal').classList.add('open');
+  setTimeout(() => document.getElementById('reason-modal-input').focus(), 50);
+}
+function closeReasonModal() {
+  document.getElementById('reason-modal').classList.remove('open');
+  _reasonCb = null;
+}
+function confirmReason() {
+  const val = document.getElementById('reason-modal-input').value.trim();
+  if (!val) { toast('Escribe algo', 'warn'); return; }
+  closeReasonModal();
+  if (_reasonCb) _reasonCb(val);
+}
+document.getElementById('reason-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeReasonModal();
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILS
+   ═══════════════════════════════════════════════════════════════════════════ */
+function toast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  t.textContent = (type === 'ok' ? '✓ ' : '⚠ ') + msg;
+  t.style.color = type === 'ok' ? 'var(--green)' : 'var(--amber)';
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2600);
+}
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escJs(s) {
+  return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+// Restore user session if present
+(function init() {
+  const saved = sessionStorage.getItem('annotation_user');
+  if (saved) {
+    try {
+      S.user = JSON.parse(saved);
+      applyUser();
+      document.getElementById('login-screen').style.display = 'none';
+      loadProjects();
+    } catch(e) {}
+  }
+})();
+
+</script>
+</body>
+</html>

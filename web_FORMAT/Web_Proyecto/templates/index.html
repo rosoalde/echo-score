@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo Análisis - Social Insight AI{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-xl-10 col-lg-12">
+
+            <!-- Encabezado -->
+            <div class="text-center mb-5">
+                <h2 class="fw-bold text-primary"><i class="bi bi-cpu-fill"></i> Sistema de Análisis de Opinión Pública</h2>
+                <p class="text-muted lead">Configuración de parámetros para extracción multired y lenguaje</p>
+            </div>
+
+            <form id="projectForm">
+                
+                <!-- 1. DEFINICIÓN DEL PROYECTO -->
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3 border-bottom">
+                        <h5 class="mb-0 text-secondary fw-bold"><i class="bi bi-folder2-open me-2"></i> 1. Definición del proyecto</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-4">
+                            <!-- Nombre -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Nombre del proyecto</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-tag"></i></span>
+                                    <input type="text" class="form-control" id="project_name" name="project_name" placeholder="Ej: Campaña_V16" required>
+                                </div>
+                                <div id="projectNameError" class="invalid-feedback"></div>
+                            </div>
+
+                            
+                            <!-- Ámbito geográfico Dónde (ej: España, Buenos Aires) --> 
+                            <!-- Población objetivo Quiénes (ej: mujeres 40-50 años) -->
+                            <!-- Población objetivo: Quiénes (ej: mujeres 40-50 años, estudiantes, etc.) -->
+                            {% set ENABLE_POPULATION = False %}
+                            {% if ENABLE_POPULATION %}
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    Contexto geográfico
+                                    <span class="badge bg-primary ms-1" 
+                                        data-bs-toggle="tooltip" 
+                                        title="Define el ámbito geográfico del análisis. Se usará para generar términos de búsqueda específicos (operadores locales, topónimos, servicios reales) y para interpretar los resultados.">
+                                        ¿Para qué sirve?
+                                    </span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="bi bi-people"></i>
+                                    </span>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="populationInput" 
+                                        name="population" 
+                                        placeholder="Ej: España, Comunidad Valenciana, Alicante, Benidorm, etc."
+                                    >
+                                </div>
+                                <div class="form-text mt-1">
+                                    <i class="bi bi-info-circle text-primary"></i>
+                                    <strong>Importante:</strong> Este campo determina qué términos locales generará la IA. 
+                                    Cuanto más preciso seas (ej: <em>"provincia de Valencia"</em> vs <em>"Valencia"</em>), 
+                                    más específicos serán los términos. Déjalo vacío solo si quieres análisis global sin filtro geográfico.
+                                </div>
+                            </div>
+                            {% endif %}
+                            <!-- Idiomas -->
+                            <div class="col-12">
+                                <label class="form-label fw-bold">Idiomas objetivo</label>
+                                <div class="card bg-light border-0">
+                                    <div class="card-body">
+                                        <div class="form-check mb-2 pb-2 border-bottom border-secondary-subtle">
+                                            <input class="form-check-input" type="checkbox" id="selectAllLanguages" name="selectAllLanguages">
+                                            <label class="form-check-label fw-bold text-primary" for="selectAllLanguages">Seleccionar todos</label>
+                                        </div>
+                                        <div class="row g-3">
+                                            <div class="col-6 col-md-3"><div class="form-check"><input class="form-check-input" type="checkbox" name="languages[]" value="Castellano" id="l_es"><label class="form-check-label" for="l_es"><span class="fi fi-es me-1"></span> Castellano</label></div></div>
+                                            <div class="col-6 col-md-3"><div class="form-check"><input class="form-check-input" type="checkbox" name="languages[]" value="Catalan" id="l_ca"><label class="form-check-label" for="l_ca"><span class="fi fi-es-ct me-1"></span> Catalán</label></div></div>
+                                            <div class="col-6 col-md-3"><div class="form-check"><input class="form-check-input" type="checkbox" name="languages[]" value="Euskera" id="l_eu"><label class="form-check-label" for="l_eu"><span class="fi fi-es-pv me-1"></span> Euskera</label></div></div>
+                                            <div class="col-6 col-md-3"><div class="form-check"><input class="form-check-input" type="checkbox" name="languages[]" value="Ingles" id="l_en"><label class="form-check-label" for="l_en"><span class="fi fi-gb me-1"></span> Inglés</label></div></div>
+                                            <div class="col-6 col-md-3"><div class="form-check"><input class="form-check-input" type="checkbox" name="languages[]" value="Italiano" id="l_it"><label class="form-check-label" for="l_it"><span class="fi fi-it me-1"></span> Italiano</label></div></div>
+                                            <div class="col-6 col-md-3"><div class="form-check"><input class="form-check-input" type="checkbox" name="languages[]" value="Portugues" id="l_pt"><label class="form-check-label" for="l_pt"><span class="fi fi-pt me-1"></span> Portugués</label></div></div>
+                                            <div class="col-6 col-md-3"><div class="form-check"><input class="form-check-input" type="checkbox" name="languages[]" value="Frances" id="l_fr"><label class="form-check-label" for="l_fr"><span class="fi fi-fr me-1"></span> Francés</label></div></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. MOTOR DE INTELIGENCIA ARTIFICIAL -->
+                <div class="card shadow-lg border-0 mb-4 border-start border-4 border-primary">
+                    <div class="card-header bg-primary bg-opacity-10 py-3">
+                        <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-robot me-2"></i> 2. Motor de IA (Generación de términos de búsqueda)</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Tema de análisis</label>
+                            <div class="input-group input-group-lg">
+                                <input type="text" class="form-control" name="asistente" id="temaInput"
+                                       placeholder="Describe el tema (Ej: Opinión pública sobre la implementación de las balizas V16)">
+
+                                <button type="button"
+                                        id="generateKeywordsBtn"
+                                        name="generateKeywordsBtn"
+                                        data-requires-llm disabled
+                                        class="btn btn-primary fw-bold
+                                            {% if user.role not in ['admin', 'analista'] %} disabled {% endif %}"
+                                        {% if user.role not in ['admin', 'analista'] %} disabled {% endif %}>
+                                    <i class="bi bi-magic me-1"></i>
+                                    Generar términos
+                                </button>
+                            </div>
+                            <div class="form-text mt-2"><i class="bi bi-info-circle"></i> El LLM utilizará los idiomas seleccionados arriba para generar términos relevantes.</div>
+                            <div id="tipoBadgeContainer" class="mt-2"></div>
+                        </div>
+
+                        <!-- ZONA DE RESULTADOS GENERADOS -->
+                        <!-- Este contenedor se llenará por JS. Le damos un estilo inicial limpio. -->
+                        <div id="generatedBriefContainer" class="d-none mb-3">
+                            <label class="form-label fw-bold d-flex align-items-center justify-content-between">
+                                <span><i class="bi bi-file-text me-1"></i> Descripción del tema (brief)</span>
+                                <span class="badge bg-light text-muted fw-normal" style="font-size:.7rem;">Editable</span>
+                            </label>
+                            <textarea id="briefTextarea" class="form-control" rows="3"
+                                placeholder="Aquí aparecerá el resumen del tema generado por la IA. Puedes editarlo si no te convence."></textarea>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle text-primary"></i>
+                                Este texto se usará como contexto del análisis. Si el generado no te convence, puedes modificarlo libremente.
+                            </div>
+                        </div>
+                        <div id="generatedKeywordsContainer" class="d-flex flex-wrap gap-2 mb-3">
+                            <!-- Aquí JS inyectará los checkboxes -->
+                        </div>
+
+                        <button type="button" id="toggleKeywordsBtn" 
+                                class="btn btn-outline-secondary btn-sm mb-3 d-none">
+                            Desmarcar todo
+                        </button>
+
+                        <button type="button" id="addSelectedKeywordsBtn" class="btn btn-success btn-sm mb-3 d-none">
+                            <i class="bi bi-plus-lg"></i> Confirmar selección
+                        </button>
+                        <!-- TÉRMINOS MANUALES ADICIONALES -->
+                        {% if user.role in ['admin', 'analista'] %}
+                        <div class="border rounded p-3 bg-light mt-2 mb-3">
+                            <label class="form-label fw-bold small text-uppercase text-muted">
+                                <i class="bi bi-pencil-square me-1"></i> Añadir términos manualmente
+                            </label>
+                            <div class="input-group">
+                                <input type="text" id="manualKeywordInput" class="form-control"
+                                    placeholder='Ej: "bici eléctrica", patinete, VMP'>
+                                <select id="manualKeywordLang" class="form-select" style="max-width:160px;">
+                                    <!-- se rellenará con los idiomas seleccionados -->
+                                </select>
+                                <button type="button" id="addManualKeywordBtn" class="btn btn-outline-primary">
+                                    <i class="bi bi-plus-lg"></i> Añadir
+                                </button>
+                            </div>
+                            <div class="form-text">Separa varios términos con comas o añádelos uno a uno.</div>
+                            <div id="manualKeywordsContainer" class="d-flex flex-wrap gap-2 mt-2"></div>
+                        </div>
+                        {% endif %}
+                        <div class="mb-2">
+                            <label class="form-label fw-bold">Términos activos para búsqueda</label>
+                            <!-- Input oculto o readonly que envía los datos reales -->
+                            <input type="hidden" name="keywords" id="keywordsInput">
+                            
+                            <!-- Visualización bonita para el usuario -->
+                            <div class="p-3 bg-light border rounded text-muted">
+                                <i class="bi bi-search me-2"></i> <span id="keywordsPreview">Esperando generación...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. FUENTES Y CONFIGURACIÓN -->
+                <div class="card shadow-sm border-0 mb-5">
+                    <div class="card-header bg-white py-3 border-bottom">
+                        <h5 class="mb-0 text-secondary fw-bold"><i class="bi bi-sliders me-2"></i> 3. Fuentes y periodo</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        
+                        <!-- Fechas -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Fecha inicio</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Fecha fin</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date" required>
+                            </div>
+                            <div class="invalid-feedback">La fecha final no puede ser anterior a la fecha inicial.</div>
+                        </div>
+
+                        <!-- Redes Sociales -->
+                        <label class="form-label fw-bold d-block mb-2">Fuentes de datos</label>
+                        <div class="p-3 border rounded">
+                            <div class="form-check mb-3 pb-2 border-bottom">
+                                <input class="form-check-input" type="checkbox" id="selectAllSources" name="selectAllSources"> 
+                                <label class="form-check-label fw-bold text-primary" for="selectAllSources">Seleccionar todas</label>
+                            </div>
+
+                            <div class="row g-3">
+                                                                <div class="col-6 col-md-4">
+                                <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="sources[]" value="telegram" id="s_tg">
+                                        <label class="form-check-label" for="s_tg">
+                                            <i class="bi bi-telegram text-primary"></i> Telegram
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="sources[]" value="youtube" id="s_yt">
+                                        <label class="form-check-label" for="s_yt"><i class="bi bi-youtube text-danger"></i> Youtube</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="sources[]" value="reddit" id="s_rd">
+                                        <label class="form-check-label" for="s_rd"><i class="bi bi-reddit text-danger"></i> Reddit</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="sources[]" value="bluesky" id="s_bs">
+                                        <label class="form-check-label" for="s_bs"><i class="bi bi-cloud-fill text-info"></i> BlueSky</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="sources[]" value="twitter" id="s_tw" disabled> <!-- Deshabilitado temporalmente. Para habilitar quitar disable -->
+                                        <label class="form-check-label" for="s_tw"><i class="bi bi-twitter-x"></i> Twitter / X (Próximamente)</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="sources[]" value="linkedin" id="s_li" disabled> <!-- Deshabilitado temporalmente. Para habilitar quitar disable -->
+                                        <label class="form-check-label" for="s_li"><i class="bi bi-linkedin text-primary"></i> Linkedin (Próximamente)</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="sources[]" value="tiktok" id="s_tk" disabled> <!-- Deshabilitado temporalmente. Para habilitar quitar disable -->
+                                        <label class="form-check-label" for="s_tk"><i class="bi bi-tiktok"></i> Tiktok (Próximamente)</label> 
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACCIONES -->
+                <div class="d-grid gap-2 mb-5" id="actionButtons">
+                    <div id="runCol">
+                        <button type="submit" data-requires-llm disabled
+                            class="btn btn-success btn-lg w-100 py-3 fw-bold shadow btn-ejecutar
+                                {% if user.role not in ['admin', 'analista'] %} disabled {% endif %}"
+                            {% if user.role not in ['admin', 'analista'] %} disabled {% endif %}
+                        >
+                            <i class="bi bi-rocket-takeoff me-2"></i>
+                            EJECUTAR ANÁLISIS COMPLETO
+                        </button>
+                    </div>
+                    <div id="stopCol" class="d-none">
+                        <button type="button" id="stopAnalysisBtn" class="btn btn-danger btn-lg w-100 py-3 fw-bold shadow">
+                            <i class="bi bi-stop-circle-fill me-2"></i> DETENER ANÁLISIS
+                        </button>
+                        <p class="text-muted small text-center mt-2 mb-0">
+                            <i class="bi bi-exclamation-triangle me-1 text-warning"></i>
+                            La operación actual (descarga o análisis) terminará antes de parar.
+                            Los datos ya procesados se conservarán.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- PROGRESO -->
+                <div id="progressContainer" class="card border-0 shadow-sm p-4 d-none bg-light mt-3">
+                
+                    <!-- Título + icono animado -->
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                        <h5 class="mb-0 fw-bold text-dark">Procesando análisis…</h5>
+                    </div>
+                
+                    <!-- Barra de progreso -->
+                    <div class="progress mb-2" style="height: 22px; border-radius: 12px;">
+                        <div id="progressBar"
+                            class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                            role="progressbar"
+                            style="width: 2%; border-radius: 12px; transition: width .6s ease, background .4s ease;">
+                        </div>
+                    </div>
+                
+                    <!-- Mensaje del paso actual -->
+                    <div id="progressText"
+                        class="text-center fw-semibold text-muted mb-3"
+                        style="font-size: .95rem; min-height: 1.5rem;">
+                        Inicializando…
+                    </div>
+                
+                    <!-- Log de pasos acumulativo (máx ~8 filas visibles) -->
+                    <div class="border rounded bg-white p-2" style="max-height: 200px; overflow-y: auto;">
+                        <ul id="stepLog" class="list-group list-group-flush mb-0" style="font-size: .82rem;">
+                            <!-- JS añade <li> aquí conforme avanzan los pasos -->
+                        </ul>
+                    </div>
+                
+                    <p class="text-muted small mt-2 mb-0 text-center fst-italic">
+                        El análisis puede tardar varios minutos según el volumen de datos, el periodo seleccionado y las redes seleccionadas.
+                    </p>
+                </div>
+
+                <!-- RESULTADOS (Contenedor legacy) -->
+                <div id="resultsContainer" class="mt-4"></div>
+
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', path='main.js') }}"></script>
+{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons/css/flag-icons.min.css">
+{% endblock %}

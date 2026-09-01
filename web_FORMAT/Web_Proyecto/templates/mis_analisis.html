@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Biblioteca de Análisis{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-dark mb-0">Biblioteca
+        </h2>
+        <p class="text-muted small mt-1">Gestiona tus proyectos de escucha social.</p>
+    </div>
+    <a href="/analisis" class="btn btn-primary-custom shadow-sm">
+        <i class="bi bi-plus-lg me-1"></i> Nuevo proyecto
+    </a>
+</div>
+
+{% if analyses %}
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+    {% for a in analyses %}
+    <div class="col">
+        <div class="card h-100 position-relative overflow-hidden">
+
+            <div class="status-bar {{ 'status-completed' if a.status == 'completed' else 'status-processing' }}"></div>
+
+            <div class="card-body p-4 ms-2">
+                <div class="d-flex align-items-start mb-3">
+                    <div class="bg-light rounded p-2 me-3 text-primary">
+                        <i class="bi bi-database-fill fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-1 text-truncate">
+                            {{ a.project_name }}
+                        </h5>
+                        <small class="text-muted">
+                            <i class="bi bi-calendar3 me-1"></i> Análisis
+                        </small>
+                    </div>
+                </div>
+
+                {% if a.status == "completed" %}
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge-completed">
+                        <i class="bi bi-check-circle-fill me-1"></i> Completado
+                    </span>
+
+                    <div class="btn-group shadow-sm">
+                        <a href="/analizar-datasets?project_id={{ a.project_url }}"
+                           class="btn btn-outline-primary btn-sm fw-bold d-flex align-items-center">
+                            <i class="bi bi-bar-chart-line me-1"></i> Ir al Dashboard
+                        </a>
+
+                        <a href="/analisis/{{ a.id }}/download"
+                           class="btn btn-outline-primary btn-sm d-flex align-items-center justify-content-center px-3
+                           {{ 'disabled' if user.role not in ['admin', 'analista'] }}"
+                           {% if user.role not in ['admin', 'analista'] %} 
+                               onclick="return false;" 
+                               tabindex="-1" 
+                               aria-disabled="true"
+                           {% endif %}>
+                            <i class="bi bi-download"></i>
+                        </a>
+
+                        <button class="btn btn-outline-danger btn-sm delete-analysis-btn d-flex align-items-center justify-content-center px-3
+                                {{ 'disabled' if user.role not in ['admin', 'analista'] }}"
+                                data-slug="{{ a.project_url }}"
+                                {% if user.role not in ['admin', 'analista'] %} disabled {% endif %}>
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {% elif a.status == "cancelled" %}
+                {% set progress = a.progress if a.progress is defined else 0 %}
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge-processing bg-secondary text-white">
+                        <i class="bi bi-x-circle me-1"></i> Cancelado
+                    </span>
+                    <span class="fw-bold text-secondary small pct-badge" data-analysis-id="{{ a.id }}">
+                        {{ progress }}%
+                    </span>
+                </div>
+
+                <div class="progress progress-sm mb-3" data-analysis-id="{{ a.id }}" data-progress="{{ progress }}">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated"></div>
+                </div>
+                <div class="d-flex justify-content-end align-items-center">
+                    <div class="btn-group shadow-sm">
+                        <button class="btn btn-outline-danger btn-sm delete-analysis-btn d-flex align-items-center justify-content-center px-3
+                                {{ 'disabled' if user.role not in ['admin', 'analista'] }}"
+                                data-slug="{{ a.project_url }}"
+                                {% if user.role not in ['admin', 'analista'] %} disabled {% endif %}>
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {% else %}
+                {% set progress = a.progress if a.progress is defined else 0 %}
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge-processing">
+                        <i class="bi bi-arrow-repeat me-1 spin-icon"></i> Procesando
+                    </span>
+                    <span class="fw-bold text-primary small pct-badge" data-analysis-id="{{ a.id }}">{{ progress }}%</span>
+                </div>
+
+                <div class="progress progress-sm" data-analysis-id="{{ a.id }}" data-progress="{{ progress }}" data-status="{{ a.status }}">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated"></div>
+                </div>
+
+                <div class="text-end mt-3">
+                    <button class="btn btn-sm text-danger abort-analysis-btn"
+                            data-id="{{ a.id }}">
+                        Cancelar
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-folder2-open display-1 text-muted opacity-25"></i>
+    <h4 class="text-muted mt-3">No tienes análisis creados</h4>
+    <p class="text-secondary">Crea tu primer proyecto para empezar.</p>
+    <a href="/analisis" class="btn btn-primary-custom">Comenzar ahora</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', path='analisis.js') }}"></script>
+
+<style>
+/* Barra lateral */
+.status-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 5px;
+}
+.status-completed { background: #22c55e; }
+.status-processing { background: #6366f1; }
+
+/* Badges */
+.badge-completed {
+    background: #dcfce7;
+    color: #166534;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: .75rem;
+}
+.badge-processing {
+    background: #eef2ff;
+    color: #3730a3;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: .75rem;
+}
+
+/* Progress */
+.progress-sm {
+    height: 6px;
+}
+.progress-sm .progress-bar {
+    width: 0%;
+}
+
+/* Spin */
+.spin-icon {
+    animation: spin 2s linear infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}

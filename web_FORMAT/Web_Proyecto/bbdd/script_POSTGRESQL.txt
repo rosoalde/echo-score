@@ -1,0 +1,85 @@
+CREATE TABLE usuario (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    hashed_password TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE role (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE user_role (
+    user_id INTEGER NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+    role_id INTEGER NOT NULL REFERENCES role(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, role_id)
+);
+
+INSERT INTO role (name) VALUES
+('admin'),
+('analyst'),
+('viewer');
+
+
+CREATE TABLE status (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL
+);
+
+INSERT INTO status (name) VALUES
+('pending'),
+('running'),
+('completed'),
+('failed');
+
+CREATE TABLE analysis (
+    id UUID PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+    project_name VARCHAR(255) NOT NULL,
+    tema TEXT,
+    population_scope TEXT,
+    output_folder TEXT,
+    status_id INTEGER REFERENCES status(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE analysis_config (
+    id SERIAL PRIMARY KEY,
+    analysis_id UUID NOT NULL REFERENCES analysis(id) ON DELETE CASCADE,
+    config JSONB NOT NULL
+);
+
+
+CREATE TABLE keywords (
+    id SERIAL PRIMARY KEY,
+    analysis_id UUID NOT NULL REFERENCES analysis(id) ON DELETE CASCADE,
+    keyword TEXT NOT NULL,
+    language VARCHAR(50)
+);
+
+CREATE TABLE task_type (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL
+);
+
+INSERT INTO task_type (name) VALUES
+('scraping'),
+('sentiment_analysis');
+
+
+CREATE TABLE analysis_task (
+    id SERIAL PRIMARY KEY,
+    analysis_id UUID NOT NULL REFERENCES analysis(id) ON DELETE CASCADE,
+    task_type_id INTEGER NOT NULL REFERENCES task_type(id),
+    status_id INTEGER NOT NULL REFERENCES status(id),
+
+    progress INTEGER DEFAULT 0, -- 0 a 100
+    message TEXT,               -- "Scraping Reddit..."
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    started_at TIMESTAMP,
+    finished_at TIMESTAMP
+);

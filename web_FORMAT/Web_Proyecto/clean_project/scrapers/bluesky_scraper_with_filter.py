@@ -205,9 +205,9 @@ async def verificar_relevancia_vlm(post_data, b64_image, u_conf):
     2. Imagen: Úsala solo si el texto es ambiguo.
     3. Geografía: {geo_instruction}
     4. Si no se puede inferir ubicación marcar como RELEVANTE, no descartar por defecto.
-    5. En caso de duda, marcar como RELEVANTE para no perder datos potencial
+    5. En caso de duda, marcar como RELEVANTE para no perder datos potenciales.
 
-    Responde en JSON: {{"relevante": true/false, "razon": "...", "idioma": "..."}}
+    Responde en JSON: {{"relevante": true/false, "razon_relevancia": "...", "idioma": "...", "idioma_justificacion": "..."}}
     """
 
     content = [{"type": "text", "text": prompt}]
@@ -222,9 +222,9 @@ async def verificar_relevancia_vlm(post_data, b64_image, u_conf):
             temperature=0
         )
         res = json.loads(response.choices[0].message.content)
-        return res.get("relevante", False), res.get("razon", "N/A"), res.get("idioma", "Desconocido")
+        return res.get("relevante", False), res.get("razon_relevancia", "N/A"), res.get("idioma", "Desconocido"), res.get("idioma_justificacion", "N/A")
     except:
-        return True, "Error en validación, se mantiene por precaución", "Desconocido"
+        return True, "Error en validación, se mantiene por precaución", "Desconocido", "N/A"
 
 # =====================================================
 # 3. FUNCIONES DE COMUNICACIÓN BLUESKY
@@ -302,7 +302,7 @@ async def run_bluesky(u_conf):
             writer = csv.writer(f, delimiter=';')
             writer.writerow([
                 "tipo", "uri", "parent_uri", "fecha", "usuario", "id_anonimo", "contenido", 
-                "likes", "reposts", "replies", "media_path", "idioma_ia", "relevancia_ia", 
+                "likes", "reposts", "replies", "media_path", "idioma_ia", "idioma_ia_just", "relevancia_ia", "relevancia_just",
                 "seguidores", "texto_citado" 
             ])
 
@@ -334,7 +334,7 @@ async def run_bluesky(u_conf):
                     b64_img = await download_image_b64(session, img_url)
 
                     # --- PASO PORTERO ---
-                    es_relevante, razon, idioma = await verificar_relevancia_vlm(p, b64_img, u_conf)
+                    es_relevante, razon, idioma, idioma_justificacion = await verificar_relevancia_vlm(p, b64_img, u_conf)
                     
                     if not es_relevante:
                         print(f"   ⏩ SALTADO: {p['record'].get('text', '')[:40]}... | Razón: {razon}")
@@ -356,7 +356,7 @@ async def run_bluesky(u_conf):
                         tipo_real, uri, uri, p["record"]["createdAt"], p["author"]["handle"],
                         generar_id_anonimo(p["author"]["handle"]), p["record"]["text"],
                         p.get("likeCount", 0), p.get("repostCount", 0), p.get("replyCount", 0),
-                        local_img_path, idioma, "SI", seguidores, texto_citado
+                        local_img_path, idioma, idioma_justificacion, "SI", razon, seguidores, texto_citado
                     ])
                     count_total += 1
 
@@ -372,7 +372,7 @@ async def run_bluesky(u_conf):
                                 rep_post["author"]["handle"], generar_id_anonimo(rep_post["author"]["handle"]),
                                 rep_post["record"]["text"], rep_post.get("likeCount", 0),
                                 rep_post.get("repostCount", 0), rep_post.get("replyCount", 0),
-                                "", idioma, "SI", "", ""
+                                "", idioma, "", "SI", "", "", ""
                             ])
                             count_total += 1
 

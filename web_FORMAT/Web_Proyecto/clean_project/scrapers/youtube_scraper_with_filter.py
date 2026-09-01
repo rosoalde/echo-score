@@ -172,7 +172,9 @@ def verificar_relevancia_vlm(detalles, transcripcion, b64_image, u_conf):
     -------------------------
     {{
     "relevante": true/false,
-    "razon": "Explica brevemente por qué (máx 2 líneas)"
+    "razon": "Explica brevemente por qué es relevante (máx 2 líneas)"
+    "idioma": Idioma detectado del contenido analizado, 
+    "idioma_justificacion": "Explica la razón de la asignación del idioma"
     }}
     """
 
@@ -190,9 +192,9 @@ def verificar_relevancia_vlm(detalles, transcripcion, b64_image, u_conf):
         raw = response.choices[0].message.content
         clean_raw = re.sub(r"```json|```", "", raw, flags=re.IGNORECASE).strip()
         res = json.loads(clean_raw)
-        return res.get("relevante", False), res.get("razon", "No se proporcionó razón")
+        return res.get("relevante", False), res.get("razon", "No se proporcionó razón"), res.get("idioma", "Desconocido"), res.get("idioma_justificacion", "N/A")
     except Exception as e:
-        return True, f"Error en Gatekeeper: {str(e)}" # En caso de duda, no descartamos
+        return True, f"Error en Gatekeeper: {str(e)}", "Desconocido", "N/A" # En caso de duda, no descartamos
 
 # =====================================================
 # 3. SCRAPER CORE
@@ -221,7 +223,7 @@ async def run_youtube(u_conf):
         writer.writerow([
             "tipo", "id_video", "fecha", "usuario", "id_anonimo", "contenido", 
             "titulo_video", "transcripcion", "likes", "comments", "vistas", 
-            "canal", "thumbnail_path", "relevancia_ia", "suscriptores"
+            "canal", "thumbnail_path", "idioma_ia", "idioma_ia_just", "relevancia_ia", "relevancia_just", "suscriptores"
         ])
 
         for kw in u_conf.general["keywords"]:
@@ -286,7 +288,7 @@ async def run_youtube(u_conf):
                         transcripcion = get_video_transcript(vid_id)
                         b64_img = download_and_base64(detalles["thumb_url"])
 
-                        es_relevante, razon_ia = verificar_relevancia_vlm(detalles, transcripcion, b64_img, u_conf)
+                        es_relevante, razon_ia, idioma, idioma_justificacion = verificar_relevancia_vlm(detalles, transcripcion, b64_img, u_conf)
 
                         if not es_relevante:
                             # IMPRIMIMOS LA RAZÓN EN LA TERMINAL
@@ -307,8 +309,8 @@ async def run_youtube(u_conf):
                             detalles["descripcion"], detalles["titulo"], transcripcion,
                             v_stats["statistics"].get("likeCount", 0), v_stats["statistics"].get("commentCount", 0),
                             v_stats["statistics"].get("viewCount", 0), detalles["canal_publica"],
-                            f"media/{vid_id}.jpg", "SI",suscriptores  
-                        ])
+                            f"media/{vid_id}.jpg", idioma, idioma_justificacion,"SI", razon_ia, suscriptores  
+                        ]) 
 
                         # --- DESCARGAR TODOS LOS COMENTARIOS (PAGINACIÓN) ---
                         print(f"📥 Descargando comentarios para: {vid_id}")
@@ -329,8 +331,8 @@ async def run_youtube(u_conf):
                                         "COMENTARIO", vid_id, c["publishedAt"], c["authorDisplayName"],
                                         generar_id_anonimo(c["authorDisplayName"]), c["textDisplay"],
                                         detalles["titulo"], "", c["likeCount"], 
-                                        c_item["snippet"]["totalReplyCount"], 0, detalles["canal_publica"], "", "SI", ""
-                                    ])
+                                        c_item["snippet"]["totalReplyCount"], 0, detalles["canal_publica"], "", "", "", "SI", "", ""
+                                    ]) 
 
                                 next_page_token = comments_res.get("nextPageToken")
                                 if not next_page_token: break

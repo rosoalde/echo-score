@@ -106,7 +106,7 @@ async def verificar_relevancia_vlm_reddit(post, b64_images, u_conf):
     5. Si no se puede inferir ubicación marcar como RELEVANTE, no descartar por defecto.
     6. En caso de duda, marcar como RELEVANTE para no perder datos potenciales.
 
-    Responde en JSON: {{"relevante": true/false, "razon": "...", "idioma": "..."}}
+    Responde en JSON: {{"relevante": true/false, "razon_relevancia": "...", "idioma": "...", "idioma_justificacion": "..."}}
     """
 
     content = [{"type": "text", "text": prompt}]
@@ -122,9 +122,9 @@ async def verificar_relevancia_vlm_reddit(post, b64_images, u_conf):
             temperature=0
         )
         res = json.loads(response.choices[0].message.content)
-        return res.get("relevante", False), res.get("razon", "N/A"), res.get("idioma", "Desconocido")
+        return res.get("relevante", False), res.get("razon_relevancia", "N/A"), res.get("idioma", "Desconocido"), res.get("idioma_justificacion", "N/A")
     except:
-        return True, "Error en validación", "Desconocido"
+        return True, "Error en validación", "Desconocido", "N/A"
 
 # =====================================================
 # 3. SCRAPER PRINCIPAL
@@ -134,7 +134,7 @@ async def verificar_relevancia_vlm_reddit(post, b64_images, u_conf):
 FIELDNAMES = [
     "tipo", "id_raiz", "id_propio", "fecha", "usuario", "karma", "id_anonimo",
     "contenido", "likes", "comments", "media_path", "fuente",
-    "idioma_ia", "relevancia_ia"
+    "idioma_ia", "idioma_ia_just","relevancia_ia", "relevancia_just",
 ]
 
 async def run_reddit(u_conf):
@@ -201,7 +201,7 @@ async def run_reddit(u_conf):
                             b64_imgs = [img for img in b64_imgs if img]
 
                             # ── Gatekeeper ───────────────────────────────────
-                            es_relevante, razon, idioma = await verificar_relevancia_vlm_reddit(
+                            es_relevante, razon, idioma, idioma_justificacion = await verificar_relevancia_vlm_reddit(
                                 post, b64_imgs, u_conf
                             )
                             if not es_relevante:
@@ -234,8 +234,10 @@ async def run_reddit(u_conf):
                                 "media_path":   "|".join(local_paths),
                                 "fuente":       f"r/{post.subreddit.display_name}",
                                 "idioma_ia":    idioma,
-                                "relevancia_ia":"SI"
-                            }
+                                "idioma_ia_just": idioma_justificacion,
+                                "relevancia_ia": "SI",
+                                "relevancia_just": razon,
+                            } 
                             writer.writerow(post_row)
                             csv_file_handle.flush()      # flush inmediato
                             rows_written += 1
@@ -269,8 +271,10 @@ async def run_reddit(u_conf):
                                         "comments":     len(comment.replies),
                                         "media_path":   c_local_path,
                                         "fuente":       f"r/{post.subreddit.display_name}",
-                                        "idioma_ia":    idioma,
-                                        "relevancia_ia":"SI"
+                                        "idioma_ia":    " ",
+                                        "idioma_ia_just": " ",
+                                        "relevancia_ia": "SI",
+                                        "relevancia_just": " ",
                                     }
                                     writer.writerow(comment_row)
                                     rows_written += 1

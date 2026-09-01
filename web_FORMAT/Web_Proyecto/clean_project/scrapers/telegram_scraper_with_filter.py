@@ -182,7 +182,7 @@ REGLAS:
 3. Si no se puede inferir ubicación, marcar como RELEVANTE (no descartar por defecto).
 4. En caso de duda, marcar como RELEVANTE para no perder datos potenciales.
 
-Responde en JSON: {{"relevante": true/false, "razon": "...", "idioma": "..."}}
+Responde en JSON: {{"relevante": true/false, "razon_relevancia": "...", "idioma": "...", "idioma_justificacion": "..."}}
 """
 
     try:
@@ -197,10 +197,10 @@ Responde en JSON: {{"relevante": true/false, "razon": "...", "idioma": "..."}}
         # print(f"{'=' * 60}")
         # print(res)
         # print(f"{'=' * 60}")
-        return res.get("relevante", False), res.get("razon", "N/A"), res.get("idioma", "Desconocido")
+        return res.get("relevante", False), res.get("razon_relevancia", "N/A"), res.get("idioma", "Desconocido"), res.get("idioma_justificacion", "N/A")
     except Exception as e:
         print(f"⚠️ Error llamando al LLM: {e}")
-        return True, "Error en validación, se mantiene por precaución", "Desconocido"
+        return True, "Error en validación, se mantiene por precaución", "Desconocido", "N/A"
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -231,7 +231,7 @@ async def run_telegram(u_conf):
         writer = csv.writer(f, delimiter=";")
         writer.writerow([
             "tipo", "uri", "parent_uri", "fecha", "usuario", "id_anonimo", "contenido",
-            "likes", "reposts", "replies", "media_path", "idioma_ia", "relevancia_ia",
+            "likes", "reposts", "replies", "media_path", "idioma_ia", "idioma_ia_just", "relevancia_ia", "relevancia_just",
             "seguidores", "texto_citado", "canal", "vistas", "reacciones_total",
         ])
 
@@ -276,7 +276,7 @@ async def run_telegram(u_conf):
             ])
 
             # 3. Escribir al CSV solo lo que pasó el portero
-            for (post, contenido), (es_relevante, razon, idioma) in zip(candidatos, resultados):
+            for (post, contenido), (es_relevante, razon, idioma, idioma_justificacion) in zip(candidatos, resultados):
                 if not es_relevante:
                     print(f"   ⏩ SALTADO: {contenido[:40]}... | {razon}")
                     continue
@@ -287,7 +287,7 @@ async def run_telegram(u_conf):
                     "POST", uri, uri, post.get("created_at"), post.get("sender_username"),
                     post.get("sender_id_hash"), contenido,
                     post.get("likes", 0), post.get("forwards", 0), post.get("replies", 0),
-                    post.get("media_types") or "", idioma, "SI", suscriptores, "", canal_ref, post.get("views", 0), _sumar_reacciones(post),
+                    post.get("media_types") or "", idioma, idioma_justificacion, "SI", razon, suscriptores, "", canal_ref, post.get("views", 0), _sumar_reacciones(post),
                 ])
                 count_total += 1
 
@@ -304,7 +304,7 @@ async def run_telegram(u_conf):
                         com.get("sender_username"), com.get("sender_id_hash"),
                         com.get("content", ""), com.get("likes", 0), com.get("forwards", 0),
                         num_respuestas, com.get("media_types") or "",
-                        idioma, "SI", "", "", canal_ref, com.get("views", 0), _sumar_reacciones(com),
+                        idioma, "", "SI", "","", "", canal_ref, com.get("views", 0), _sumar_reacciones(com),
                     ])
                     count_total += 1
     print(f"✅ Telegram finalizado. Total registros guardados: {count_total}")

@@ -557,7 +557,7 @@ def construir_contexto_topics():
 === TÓPICOS MÁS COMUNES (Úsalos si el argumento coincide) ===
 {topics_str}
 
-⚠️ REGLA CRÍTICA: Si el argumento del comentario es muy similar a uno de estos,
+⚠️ REGLA CRÍTICA: Si el argumento/aspecto del comentario sobre el tema es semánticamente similar a uno de estos,
 USA EXACTAMENTE el tópico existente. No crees variantes.
 """
 
@@ -636,7 +636,7 @@ def build_prompts(tema, desc_tema, keywords_list, population_scope, languages):
 1. ANALIZA SOLO el bloque [CONTENIDO] para pertinencia, idioma, postura y subtopic, sentimiento, region, pais, ciudad.
 2. Usa [TÍTULO POST], [POST PADRE], [TRANSCRIPCIÓN], etc. SOLO como contexto auxiliar.
 2. Determina si el [CONTENIDO] es pertinente.
-5. El topic explica el ARGUMENTO principal del [CONTENIDO], NO repite el tema general.
+5. El topic explica el ARGUMENTO o ASPECTO principal del [CONTENIDO] sobre el tema de análisis, NO repite el tema general.
 
 
 🚨 PASO 0: PERTINENCIA 🚨
@@ -693,7 +693,7 @@ REGLAS:
 - Solo marcar -1 si hay rechazo (explícito o implícito) al concepto, medida o servicio en sí. Ejemplo: "el bikesharing destruye el comercio" → posicion=-1.
 - Si "pertinencia" es "irrelevante", usa directamente posicion=2.
 
---- PASO 4: SUBTOPIC (aspecto/argumento del comentario) + SU SENTIMIENTO ---
+--- PASO 4: SUBTOPIC (aspecto/argumento del comentario sobre el tema) + SU SENTIMIENTO ---
 
 🚨 REGLAS:
 1. PROHIBIDO usar palabras de "{tema}" ni "{keywords_str}" en el subtopic.

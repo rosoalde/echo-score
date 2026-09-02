@@ -87,12 +87,16 @@ Si hay duda, NO excluir.
 - Si el texto del COMENTARIO es una opinión aunque el CONTEXTO sea noticia, NO excluir.
 
 FORMATO DE SALIDA SI excluded=true:
-Devuelve SOLO este JSON (sin texto extra):
+Devuelve SOLO este JSON (sin texto extra), usando motivo_exclusion como justificación de los 4 pilares:
 {{
   "Legitimación_sociopolítica": "2",
   "Efectividad_percibida": "2",
   "Justicia_y_equidad_percibida": "2",
-  "Confianza_y_legitimidad_institucional": "2"
+  "Confianza_y_legitimidad_institucional": "2",
+  "legitimacion_just": "<motivo_exclusion>",
+  "efectividad_just": "<motivo_exclusion>",
+  "justicia_eq_just": "<motivo_exclusion>",
+  "confianza_just": "<motivo_exclusion>"
 }}
 
 🚨 PASO 1: SOLO si excluded=false 🚨
@@ -448,7 +452,8 @@ Si se evalúan actores → NO uses "2"
 --------------------------------------------------
 REGLAS DE FORMATO:
 - Responde SOLO en JSON, sin texto adicional.
-- Los valores deben ser SOLO el número en formato string.
+- Los 4 valores numéricos deben ser SOLO el número en formato string.
+- Los 4 campos "_just" son texto libre breve (1 frase) justificando el valor de su pilar correspondiente.
 
 
 --- COMENTARIO A ANALIZAR ---
@@ -461,7 +466,11 @@ FORMATO DE SALIDA SI excluded=false:
   "Legitimacion_sociopolítica": "<1|-1|0|2>",
   "Efectividad_percibida": "<1|-1|0|2>",
   "Justicia_y_equidad_percibida": "<1|-1|0|2>",
-  "Confianza_y_legitimidad_institucional": "<1|-1|0|2>"
+  "Confianza_y_legitimidad_institucional": "<1|-1|0|2>",
+  "legitimacion_just": "...",
+  "efectividad_just": "...",
+  "justicia_eq_just": "...",
+  "confianza_just": "..."
 }}
 """
     return system, user_template
@@ -586,6 +595,10 @@ KEY_MAP = {
         'confianza_institucional',
         'Confianza_y_legitimidad_institucional',
     ],
+    'legitimacion_just': ['legitimacion_just'],
+    'efectividad_just': ['efectividad_just'],
+    'justicia_equidad_just': ['justicia_eq_just', 'justicia_equidad_just'],
+    'confianza_institucional_just': ['confianza_just', 'confianza_institucional_just'],
 }
 def analizar_pilares_vllm(system_prompt, user_prompt, image_path=None):
     user_content = [{"type": "text", "text": user_prompt}]
@@ -675,10 +688,16 @@ def _worker_pilares(idx, texto_preparado, user_template, system_prompt, img_path
     efe = parsear_stance(extraer_valor(resultado_json, 'efectividad'))
     jus = parsear_stance(extraer_valor(resultado_json, 'justicia_equidad'))
     con = parsear_stance(extraer_valor(resultado_json, 'confianza_institucional'))
+
+    # Justificaciones (texto libre, sin conversión numérica)
+    leg_j = extraer_valor(resultado_json, 'legitimacion_just') or ""
+    efe_j = extraer_valor(resultado_json, 'efectividad_just') or ""
+    jus_j = extraer_valor(resultado_json, 'justicia_equidad_just') or ""
+    con_j = extraer_valor(resultado_json, 'confianza_institucional_just') or ""
  
     print(f"  ✅ idx={idx} | leg={leg}, efe={efe}, jus={jus}, con={con} | claves={list(resultado_json.keys())}")
  
-    return idx, {"leg": leg, "efe": efe, "jus": jus, "con": con}
+    return idx, {"leg": leg, "efe": efe, "jus": jus, "con": con, "leg_j": leg_j, "efe_j": efe_j, "jus_j": jus_j, "con_j": con_j}
 
 def procesar_pilares_directorio(u_conf, archivos=None):
     folder = Path(u_conf.general["output_folder"])
@@ -716,8 +735,12 @@ def procesar_pilares_directorio(u_conf, archivos=None):
  
         df = pd.read_csv(arch, sep=sep, encoding='utf-8', on_bad_lines='skip')
  
-        # 1. Filtrar descartados (sentimiento == 2)
-        if 'sentimiento' in df.columns:
+        # 1. Filtrar descartados# Con el nuevo vllm_sentiment_topic_new.py el CSV ya no trae 'sentimiento'
+        # (se sustituyó por 'pertinencia'); se mantiene el camino antiguo por si
+        # se procesa un *_analizado.csv generado con el esquema previo.
+        if 'pertinencia' in df.columns:
+            df_filtrado = df[df['pertinencia'].astype(str).str.strip().str.lower() == 'relevante'].copy()
+        elif 'sentimiento' in df.columns:
             df['sentimiento'] = pd.to_numeric(df['sentimiento'], errors='coerce')
             df_filtrado = df[df['sentimiento'] != 2].copy()
         else:
@@ -733,7 +756,12 @@ def procesar_pilares_directorio(u_conf, archivos=None):
         for p in cols_pilares:
             if p not in df_filtrado.columns:
                 df_filtrado[p] = 0
- 
+
+        cols_pilares_just = ['justif_legitimacion', 'justif_efectividad', 'justif_justicia_equidad', 'justif_confianza_institucional']
+        for pj in cols_pilares_just:
+            if pj not in df_filtrado.columns:
+                df_filtrado[pj] = ""
+
         # Construir lista de índices a procesar
         indices = df_filtrado.index.tolist()
         total   = len(indices)
@@ -780,6 +808,10 @@ def procesar_pilares_directorio(u_conf, archivos=None):
                         if valores["efe"] is not None: df_filtrado.at[result_idx, 'efectividad']             = valores["efe"]
                         if valores["jus"] is not None: df_filtrado.at[result_idx, 'justicia_equidad']        = valores["jus"]
                         if valores["con"] is not None: df_filtrado.at[result_idx, 'confianza_institucional']  = valores["con"]
+                        df_filtrado.at[result_idx, 'justif_legitimacion']            = valores["leg_j"]
+                        df_filtrado.at[result_idx, 'justif_efectividad']             = valores["efe_j"]
+                        df_filtrado.at[result_idx, 'justif_justicia_equidad']        = valores["jus_j"]
+                        df_filtrado.at[result_idx, 'justif_confianza_institucional'] = valores["con_j"]
                     except Exception as e:
                         print(f"  ⚠️ Error escribiendo resultados (idx={idx}): {e}")
  

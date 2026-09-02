@@ -101,10 +101,102 @@ def load_transcript(transcript_path):
 # EXTRACTOR JSON ROBUSTO
 # =====================================================
 
+# Orden fijo de columnas de análisis, usado tanto al parsear como al
+# escribir en el DataFrame/CSV. La clave es el nombre final en el CSV
+# (compatible con el modelo `records` del sistema de anotación); el
+# comentario indica la clave del JSON del LLM de la que procede.
+COLUMNAS_ANALISIS = [
+    "pertinencia",          # <- relevante/irrelevante
+    "justif_pertinencia",    # <- justificación pertinencia
+    "lang",                # <- idioma (primer código)
+    "justif_lang",          # <- idioma_just
+    "world_continent",      # <- continente (primer código)
+    "justif_continente",    # <- continente_just
+    "world_country",        # <- pais (primer código)
+    "justif_pais",           # <- pais_just
+    "world_region",          # <- region
+    "justif_region",          # <- region_just
+    "world_city",              # <- ciudad
+    "justif_ciudad",            # <- ciudad_just
+    "posicion",                  # <- posicion
+    "justif_posicion",            # <- posicion_just
+    "topic_llm",                   # <- subtopic
+    "justif_topic",                 # <- subtopic_just
+    "sentiment_llm",                 # <- sent_subtopic
+    "justif_sentimiento",             # <- sent_subtopic_just
+]
+
+def _primero_o_vacio(valor):
+    """Colapsa una lista de códigos (idioma/continente/pais) al primer
+    elemento para la columna escalar del CSV. Admite también un string
+    suelto por si el LLM no respeta el formato de lista."""
+    if isinstance(valor, list):
+        return str(valor[0]).strip() if valor else ""
+    if valor is None:
+        return ""
+    return str(valor).strip()
+
+def _entero_seguro(valor, permitidos, default=2):
+    """Convierte a int si es uno de los valores permitidos; si no, default."""
+    try:
+        v = int(valor)
+        return v if v in permitidos else default
+    except (TypeError, ValueError):
+        return default
+
+def _fila_vacia(motivo=""):
+    """Fila de fallback cuando no se puede parsear el JSON del modelo."""
+    return {
+        "pertinencia": "irrelevante", "justif_pertinencia": motivo,
+        "lang": "", "justif_lang": "",
+        "world_continent": "", "justif_continente": "",
+        "world_country": "", "justif_pais": "",
+        "world_region": "", "justif_region": "",
+        "world_city": "", "justif_ciudad": "",
+        "posicion": 2, "justif_posicion": motivo,
+        "topic_llm": "error", "justif_topic": motivo,
+        "sentiment_llm": 2, "justif_sentimiento": motivo,
+    }
+
+def validar_json(data):
+    """Valida y mapea el JSON del modelo (claves 'idioma', 'pais', 'subtopic',
+    etc.) a las columnas finales del CSV (claves 'lang', 'world_country',
+    'topic_llm', etc. — ver COLUMNAS_ANALISIS)."""
+    if not isinstance(data, dict):
+        return _fila_vacia("JSON no es un diccionario")
+
+    resultado = {
+        "pertinencia":        str(data.get("pertinencia", "irrelevante")).strip().lower(),
+        "justif_pertinencia": str(data.get("justif_pertinencia", "") or "").strip(),
+        "lang":               _primero_o_vacio(data.get("idioma")),
+        "justif_lang":        str(data.get("idioma_just", "") or "").strip(),
+        "world_continent":    _primero_o_vacio(data.get("continente")),
+        "justif_continente":  str(data.get("continente_just", "") or "").strip(),
+        "world_country":      _primero_o_vacio(data.get("pais")),
+        "justif_pais":        str(data.get("pais_just", "") or "").strip(),
+        "world_region":       str(data.get("region", "") or "").strip(),
+        "justif_region":      str(data.get("region_just", "") or "").strip(),
+        "world_city":         str(data.get("ciudad", "") or "").strip(),
+        "justif_ciudad":      str(data.get("ciudad_just", "") or "").strip(),
+        "posicion":           _entero_seguro(data.get("posicion"), {-1, 0, 1, 2}, default=2),
+        "justif_posicion":    str(data.get("posicion_just", "") or "").strip(),
+        "topic_llm":          str(data.get("subtopic", "") or "no relacionado").strip(),
+        "justif_topic":       str(data.get("subtopic_just", "") or "").strip(),
+        "sentiment_llm":      _entero_seguro(data.get("sent_subtopic"), {-1, 0, 1, 2}, default=2),
+        "justif_sentimiento": str(data.get("sent_subtopic_just", "") or "").strip(),
+    }
+
+    if resultado["pertinencia"] not in ("relevante", "irrelevante"):
+        resultado["pertinencia"] = "irrelevante"
+
+    return resultado   
+
 def extraer_json_clasificacion(raw):
-    """Extrae clasificación del JSON del modelo"""
+    """Extrae la clasificación completa (16 campos) del JSON del modelo,
+    con los mismos 3 niveles de tolerancia que la versión anterior
+    (JSON directo, sin markdown, mayor bloque {...} válido)."""
     if not raw or not isinstance(raw, str):
-        return 2, "error", "Desconocido", 0
+        return _fila_vacia("respuesta vacía")
     
     raw = raw.strip()
     
@@ -112,7 +204,7 @@ def extraer_json_clasificacion(raw):
     try:
         data = json.loads(raw)
         return validar_json(data)
-    except:
+    except Exception:
         pass
     
     # Intento 2: Limpiar markdown
@@ -120,7 +212,7 @@ def extraer_json_clasificacion(raw):
     try:
         data = json.loads(raw_clean)
         return validar_json(data)
-    except:
+    except Exception:
         pass
     
     # Intento 3: Extraer el JSON más grande
@@ -147,24 +239,31 @@ def extraer_json_clasificacion(raw):
             bloque = re.sub(r',\s*]', ']', bloque)
             data = json.loads(bloque)
             return validar_json(data)
-        except:
+        except Exception:
             pass
-    
-    # Intento 4: Regex de emergencia
-    try:
-        sent_match = re.search(r'"?sentimiento"?\s*:\s*"?(-?1|0|2)"?', raw, re.IGNORECASE)
-        topic_match = re.search(r'"?topic"?\s*:\s*"([^"]+)"', raw, re.IGNORECASE)
-        lang_match = re.search(r'"?Idioma_Real"?\s*:\s*"([^"]+)"', raw, re.IGNORECASE)
+
+    #=========================================
+    # A diferencia de la versión anterior, NO hay regex de emergencia campo
+    # a campo: con 18 claves no es fiable y añade más ruido del que evita.
+    # response_format={"type": "json_object"} en la llamada a vLLM ya obliga
+    # a JSON sintácticamente válido, así que este camino debería ser raro.
+    return _fila_vacia("no se pudo parsear JSON")
+    # # Intento 4: Regex de emergencia
+    # try:
+    #     sent_match = re.search(r'"?sentimiento"?\s*:\s*"?(-?1|0|2)"?', raw, re.IGNORECASE)
+    #     topic_match = re.search(r'"?topic"?\s*:\s*"([^"]+)"', raw, re.IGNORECASE)
+    #     lang_match = re.search(r'"?Idioma_Real"?\s*:\s*"([^"]+)"', raw, re.IGNORECASE)
         
-        sentimiento = int(sent_match.group(1)) if sent_match else 2
-        topic = topic_match.group(1).strip() if topic_match else "error"
-        idioma = lang_match.group(1).strip() if lang_match else None
+    #     sentimiento = int(sent_match.group(1)) if sent_match else 2
+    #     topic = topic_match.group(1).strip() if topic_match else "error"
+    #     idioma = lang_match.group(1).strip() if lang_match else None
         
-        return sentimiento, topic, idioma, 0
-    except:
-        pass
+    #     return sentimiento, topic, idioma, 0
+    # except:
+    #     pass
     
-    return 2, "error", None, 0
+    # return 2, "error", None, 0
+    #=========================================
 
 def validar_json(data):
     """Valida y extrae datos del JSON"""
@@ -462,6 +561,38 @@ def construir_contexto_topics():
 USA EXACTAMENTE el tópico existente. No crees variantes.
 """
 
+
+# =====================================================
+# CATÁLOGO DE IDIOMAS / PAÍSES / CONTINENTES (Talkwalker)
+# =====================================================
+# PENDIENTE: sustituir por el contenido real de talkwalker_languages.json /
+# talkwalker_countries.json en cuanto Romina los comparta. Si los ficheros
+# existen junto a este script, se cargan automáticamente; si no, se usa una
+# instrucción ISO genérica para que el pipeline no se quede bloqueado.
+
+def _instruccion_lista_idiomas():
+    ruta = Path(__file__).parent / "talkwalker_languages.json"
+    if ruta.exists():
+        with open(ruta, "r", encoding="utf-8") as f:
+            catalogo = json.load(f)
+        codigos = sorted(catalogo.keys()) if isinstance(catalogo, dict) else sorted(catalogo)
+        return f"Usa EXCLUSIVAMENTE uno de estos códigos: {', '.join(codigos)}."
+    return "Usa el código ISO 639-1 de 2 letras (ej: es, ca, eu, en, fr, pt).  # provisional, sin talkwalker_languages.json"
+
+
+def _instruccion_lista_paises():
+    ruta = Path(__file__).parent / "talkwalker_countries.json"
+    if ruta.exists():
+        with open(ruta, "r", encoding="utf-8") as f:
+            catalogo = json.load(f)
+        codigos = sorted(catalogo.keys()) if isinstance(catalogo, dict) else sorted(catalogo)
+        return f"Usa EXCLUSIVAMENTE uno de estos códigos de país: {', '.join(codigos)}."
+    return "Usa el código ISO 3166-1 alpha-2 (ej: ES, MX, AR, FR).  # provisional, sin talkwalker_countries.json"
+
+
+def _instruccion_lista_continentes():
+    return "Usa uno de: AF, AN, AS, EU, NA, OC, SA.  # provisional, sin catálogo Talkwalker de continentes"
+
 # =====================================================
 # PROMPTS
 # =====================================================
@@ -471,11 +602,11 @@ def build_prompts(tema, desc_tema, keywords_list, population_scope, languages):
     langs = ", ".join(languages) if languages else "Cualquiera"
     geo_instruction = ""
     if "GLOBAL" in population_scope.upper():
-        geo_instruction = "2. GEOGRAFÍA:\n"
+        geo_instruction = "2. GEOGRAFÍA (pertinencia):\n"
         geo_instruction += " Filtro desactivado. Acepta comentarios de cualquier ubicación geográfica."
     else:
-        geo_instruction = f"2. GEOGRAFÍA:\n"
-        geo_instruction =  f" Considerar RELEVANTE solo si el autor, el contenido o el contexto menciona o permite inferir claramente una ubicación específica dentro de {population_scope}:"
+        geo_instruction = f"2. GEOGRAFÍA (pertinencia):\n"
+        geo_instruction +=  f" Considerar RELEVANTE solo si el autor, el contenido o el contexto menciona o permite inferir claramente una ubicación específica dentro de {population_scope}:"
         geo_instruction += f" Nombre de barrio, distrito, calle, plaza, institución local, o gentilicio local en {population_scope}."
         geo_instruction += f" Referencia a un servicio/organismo que opera exclusivamente en {population_scope}"
         geo_instruction += f" El autor indica estar en {population_scope} (perfil, contexto, etc.)"
@@ -490,8 +621,8 @@ def build_prompts(tema, desc_tema, keywords_list, population_scope, languages):
     system = (
         "Eres un auditor de datos para social listening. "
         "Tu prioridad es ELIMINAR ruido antes de clasificar. "
-        "Todos los 'Topic' deben estar en CASTELLANO. "
-        "Salida: JSON exclusivamente."
+        "Todo el texto libre en 'Topic' deben estar en CASTELLANO. "
+        "Salida: JSON exclusivamente, con TODAS las claves del formato pedido, sin excepción."
     )
     
     user_template = f"""
@@ -501,92 +632,83 @@ def build_prompts(tema, desc_tema, keywords_list, population_scope, languages):
 - Idiomas permitidos: {langs}
 - Ubicación permitida: {population_scope}
 
---- INSTRUCCIONES CLARAS ---
-1. Identifica el idioma del bloque [CONTENIDO] ignorando el idioma del [TÍTULO] o [POST PADRE].
-2. Determina si el [CONTENIDO] es relevante.
-3. ANALIZA SOLO el bloque [CONTENIDO] para sentimiento y topic
-4. Usa [TÍTULO POST], [TRANSCRIPCIÓN], etc. SOLO como contexto auxiliar
-5. El topic explica el ARGUMENTO del [CONTENIDO], NO repetir el tema general
+--- INSTRUCCIONES GENERALES  ---
+1. ANALIZA SOLO el bloque [CONTENIDO] para pertinencia, idioma, postura y subtopic, sentimiento, region, pais, ciudad.
+2. Usa [TÍTULO POST], [POST PADRE], [TRANSCRIPCIÓN], etc. SOLO como contexto auxiliar.
+2. Determina si el [CONTENIDO] es pertinente.
+5. El topic explica el ARGUMENTO principal del [CONTENIDO], NO repite el tema general.
 
 
-🚨 PASO 0: FILTRO DE EXCLUSIÓN 🚨
-Marca Sentimiento=2 y Topic="no relacionado" si:
-- El [CONTENIDO] no está en {langs}.
-- El [CONTENIDO] es spam o irrelevante si el {tema} NO es el FOCO PRINCIPAL del [CONTENIDO], aunque se mencione de forma secundaria o contextual.
-
-
-🚨 PASO 0: FILTRO DE EXCLUSIÓN 🚨
-
-Excluye (marca Sentimiento=2, Topic="no relacionado") si:
-1. IDIOMA: El texto del [CONTENIDO] NO está en {langs}
+🚨 PASO 0: PERTINENCIA 🚨
+Marca "pertinencia":"irrelevante" si:
+1. IDIOMA: el [CONTENIDO] no está en {langs}.
 {geo_instruction}
 3. SPAM/PUBLICIDAD: mensajes sin texto coherente o que promueven productos/servicios sin relación con "{tema}".
-4. AJENO: No relacionado con "{tema}"
+4. AJENO: "{tema}" NO es el foco del [CONTENIDO], aunque se mencione de forma secundaria o contextual.
 
 ⚠️ NO excluyas noticias/citas relevantes al tema.
-
---- PASO 1: POSICIONAMIENTO (solo si PASÓ filtro) ---
-
-Determina la POSTURA sobre "{tema}":
-- "1": A favor / Positivo / Beneficios
-- "-1": En contra / Crítica / Problemas
-- "0": Neutro / Informativo / Equilibrado
-- "2": Irrelevante (según Paso 0)
+Si "pertinencia":"irrelevante" → aun así completa "idioma" (Paso 1) y la ubicación del autor (Paso 2); usa "posicion":2, "subtopic":"no relacionado", "sent_subtopic":2, y explica en cada "_just" que no aplica por no ser pertinente.
 
 
---- PASO 1b: POSICIÓN SOBRE EL TEMA (independiente del sentimiento) ---
+--- PASO 1: IDIOMA DEL CONTENIDO ---
+Identifica el idioma del bloque [CONTENIDO] (ignora el idioma de [TÍTULO]/[POST PADRE]/etc.).
+{_instruccion_lista_idiomas()}
+Devuelve normalmente UN único código en la lista "idioma". 
+
+--- PASO 2: UBICACIÓN DEL AUTOR (NO la del contenido) ---
 
 ⚠️ DISTINCIÓN CRÍTICA:
-- SENTIMIENTO: tono emocional del argumento del post
-- POSICIÓN: si el autor expresa una postura EXPLÍCITA sobre "{tema}" en sí mismo
+Debes inferir dónde está / de dónde es el AUTOR del [CONTENIDO], NO el lugar del que el autor está hablando.
+Ejemplo: si el autor escribe "el ayuntamiento de Valencia ha vuelto a fallar", eso NO implica que el autor esté en Valencia — podría estar comentando desde fuera.
+
+Señales VÁLIDAS para inferir la ubicación del autor:
+- Referencias en primera persona: "aquí en...", "mi ciudad", "nosotros los [gentilicio]".
+- Declaración explícita de residencia o nacionalidad.
+- Marcas dialectales/léxicas claras y consistentes (vocabulario, expresiones) propias de una región concreta.
+
+Señales que NO debes usar POR SÍ SOLAS (no son el autor, son el tema):
+- El lugar del que trata el [CONTENIDO] o el [POST PADRE].
+- El nombre del subreddit/canal/fuente — salvo que el propio [CONTENIDO] confirme pertenencia ("vivo aquí", "somos de aquí").
+
+Si no hay NINGUNA señal fiable sobre el AUTOR → usa listas vacías [] en "continente"/"pais" y "" en "region"/"ciudad", y dilo explícitamente en el "_just" (no inventes ubicación por descarte).
+{_instruccion_lista_paises()}
+{_instruccion_lista_continentes()}
+"region" y "ciudad" son texto libre (o "" si no se puede inferir). No puede haber más de un código en "continente"/"pais" si hay ambigüedad real entre opciones concretas (p. ej. un rasgo dialectal compartido por varios países).
+
+
+
+--- PASO 3: POSTURA/POSICIÓN/OPINIÓN SOBRE "{tema}" (a nivel de TODA la publicación, no por subtopic) ---
+Determina la POSTURA O POSICIÓN O OPINIÓN del autor —explícita O implícita— sobre "{tema}" EN SÍ MISMO (no sobre su contexto, gestión puntual o servicios relacionados):
+- "1": apoya, defiende o se posiciona u opina a favor de "{tema}", explícita o implícitamente.
+- "-1": rechaza, critica o se posiciona u opina en contra de "{tema}" en sí mismo, explícita o implícitamente.
+- "0": el autor SÍ toma postura sobre "{tema}", pero es neutral/equilibrada (pros y contras, sin inclinarse claramente).
+- "2": el [CONTENIDO] no expresa NINGUNA postura, posición u opinión sobre "{tema}" —ni explícita ni implícita— aunque sea pertinente (p. ej. información pura, pregunta, dato objetivo sin valoración).
+
+⚠️ "0" y "2" NO son lo mismo: "0" es una postura posición u opinión neutral EXPRESADA; "2" es AUSENCIA de postura posición u opinión.
+
 
 REGLAS:
-- Criticar algo RELACIONADO con "{tema}" ≠ estar en contra de "{tema}"
-  Ejemplo: "el alcalde quitó los carriles bici" → posicion=0 (critica gestión, no el bikesharing)
-- Señalar un fallo puntual de un servicio ≠ rechazarlo
-  Ejemplo: "bicing siempre falla" → posicion=0 (usuario del servicio, señala un problema)
-- Solo marcar -1 si hay rechazo EXPLÍCITO al concepto, medida o servicio en sí:
-  Ejemplo: "el bikesharing destruye el comercio" → posicion=-1
+- Criticar algo RELACIONADO con "{tema}" ≠ estar en contra de "{tema}". Ejemplo: Si el tema de análisis es el "bikesharing", el contenido: "el alcalde quitó los carriles bici" → posicion=2 (no es postura posición u opinión sobre el tema (bikesharing) en sí).
+- Señalar un fallo puntual de un servicio ≠ rechazarlo. Ejemplo: "bicing siempre falla" → posicion=2 (usuario que señala un problema puntual, no rechaza el concepto).
+- Solo marcar -1 si hay rechazo (explícito o implícito) al concepto, medida o servicio en sí. Ejemplo: "el bikesharing destruye el comercio" → posicion=-1.
+- Si "pertinencia" es "irrelevante", usa directamente posicion=2.
 
-Valores:
-- "1": Apoya, defiende o promueve explícitamente "{tema}"
-- "-1": Rechaza, critica o se opone explícitamente a "{tema}" como concepto
-- "0": No hay postura explícita (habla del contexto, fallos puntuales, gestión, etc.)
+--- PASO 4: SUBTOPIC (aspecto/argumento del comentario) + SU SENTIMIENTO ---
+
+🚨 REGLAS:
+1. PROHIBIDO usar palabras de "{tema}" ni "{keywords_str}" en el subtopic.
+2. El subtopic es el aspecto/argumento CONCRETO del tema sobre el que el autor opina — no tiene por qué ser el tema principal; puede ser explícito o implícito.
+3. La ausencia de postura, opinión o posición sobre "{tema}" (posicion=2) IMPIDE identificar un subtopic si el autor opina sobre algo no relacionado con el tema.
+4. REUTILIZACIÓN OBLIGATORIA: revisa los SUBTOPICS EXISTENTES abajo; si el argumento coincide total o parcialmente, reutiliza EXACTAMENTE ese mismo texto. Solo crea uno nuevo si no existe ninguno similar.
+5. Longitud 2-4 palabras, castellano correcto, sin sinónimos si ya existe un subtopic equivalente.
+6. "sent_subtopic": polaridad hacia ESE subtopic (no hacia "{tema}" en general): "1" positiva, "0" neutra, "-1" negativa.
+7. Si "pertinencia" es "irrelevante" o no hay ningún aspecto con opinión identificable, usa "subtopic":"no relacionado" y "sent_subtopic":2.
 
 
---- PASO 2: TÓPICO (el PORQUÉ del posicionamiento) ---
-
-🚨 REGLAS CRÍTICAS:
-1. PROHIBIDO usar palabras de "{tema}" ni "{keywords_str}" en el tópico.
-2. El tópico debe representar el "POR QUÉ" (argumento o ángulo específico del comentario).
-3. REUTILIZACIÓN OBLIGATORIA:
-- Revisa TÓPICOS EXISTENTES abajo - Si el significado del comentario coincide TOTAL o PARCIALMENTE con un tópico existente, DEBES reutilizar EXACTAMENTE ese mismo texto.
-- Esta regla tiene PRIORIDAD sobre la creación de nuevos tópicos.
-4. CREACIÓN DE NUEVOS TÓPICOS:
-- Solo crear un nuevo tópico si NO existe ninguno similar.
-- Si dudas entre reutilizar o crear uno nuevo → reutiliza.
-5. PROHIBIDO reformular:
-- No uses sinónimos ni variantes si ya existe un tópico equivalente.
-6. CALIDAD DEL TÓPICO:
-- No uses frases genéricas.
-- Debe ser específico, autoexplicativo y resumir el argumento.
-- Longitud: 2–4 palabras.
-7. IDIOMA:
-- El tópico DEBE estar en castellano correcto.
-- No inventes palabras.
-- No hagas traducciones literales incorrectas.
-- Usa expresiones naturales (ej: "Mejora del servicio").
-
-Ejemplos de construcción:
-- Si el usuario apoya o se posiciona positivamente con respecto al tema (1): 
-    1. Resaltando un beneficio: "Mejora de [aspecto]", "Eficiencia en [aspecto]", "Necesidad de [aspecto]".
-    2. Apoyando el tema criticando un obstáculo: Usa "Crítica a [problema/entidad]", "Denuncia de [obstáculo]", "Rechazo a [lo que impide el tema]".
-- Si el usuario critica o se posiciona negativamente con respecto al tema (-1):
-    1. Resaltando un fallo: "Riesgo de [consecuencia]", "Impacto negativo en [aspecto]", "Falta de [recurso]".
-    2. Criticando el diseño/coste: "Coste excesivo", "Mala gestión de [aspecto]", "Inviabilidad de [tema]".
-    3. Expresa un valor ético: "Injusticia en [aspecto]", "Vulneración de [derecho/norma]".
-- Si el usuario es NEUTRAL (0):
-    1. Describe la acción: "Información sobre [aspecto]", "Consulta técnica", "Procedimiento de [tema]".    
+Ejemplos de construcción del subtopic:
+- Apoyo/positivo: "Mejora de [aspecto]", "Eficiencia en [aspecto]", "Necesidad de [aspecto]"; o apoyando el tema al criticar un obstáculo: "Crítica a [problema/entidad]", "Rechazo a [lo que impide el tema]".
+- Crítica/negativo: "Riesgo de [consecuencia]", "Impacto negativo en [aspecto]", "Falta de [recurso]", "Coste excesivo", "Mala gestión de [aspecto]", "Injusticia en [aspecto]".
+- Neutral: "Información sobre [aspecto]", "Consulta técnica", "Procedimiento de [tema]".
 
 
 __TOPICS_EXISTENTES__
@@ -595,23 +717,26 @@ __TOPICS_EXISTENTES__
 --- CONTENIDO A ANALIZAR ---
 __CONTENIDO_ANALIZAR__
 
---- FORMATO JSON ---
+--- FORMATO JSON (TODAS las claves son obligatorias, sin excepción) ---
 {{
-  "Verificacion_Filtro": {{
-    "Idioma_Real": "<Indica el idioma del bloque [CONTENIDO]>",
-    "Ubicacion_Real": "<lugar mencionado o 'Desconocida' hallado o inferido a partir del CONTENIDO_ANALIZAR>",
-    "Relevancia_Tematica": "Explica brevemente si el [CONTENIDO] está relacionado con el tema central o no, basándote en el texto y contexto. Si es irrelevante, explica por qué.",
-    "Pasa_el_filtro": "SÍ o NO"
-    "Topic_idioma": "<Indica el idioma del tópico generado, debe ser 'Castellano'>"
-    "Topico_utilizado": "<Indica si se reutilizó un tópico existente o si se creó un nuevo tópico y por qué. Ej: 'Reutilizado tópico: Mejora del servicio (similar al tópico existente 'Mejora del servicio')' o 'Nuevo tópico creado porque no había ninguno similar en los existentes'>"
-  }},
-  "Topics": [
-    {{
-      "Topic": "<argumento_especifico_en_castellano_SIN_usar_palabras_prohibidas>",
-      "Sentimiento": "<1|-1|0|2>",
-      "Posicion": "<postura explícita del [CONTENIDO] sobre {tema}: 1=a favor/le parece bien, -1=en contra/rechazo, 0=no hay posición explícita>"
-    }}
-  ]
+  "pertinencia": "relevante|irrelevante",
+  "justif_pertinencia": "...",
+  "idioma": ["<código>"],
+  "idioma_just": "...",
+  "continente": ["<código>"],
+  "continente_just": "...",
+  "pais": ["<código>"],
+  "pais_just": "...",
+  "region": "...",
+  "region_just": "...",
+  "ciudad": "...",
+  "ciudad_just": "...",
+  "posicion": <-1|0|1|2>,
+  "posicion_just": "...",
+  "subtopic": "...",
+  "subtopic_just": "...",
+  "sent_subtopic": <-1|0|1>,
+  "sent_subtopic_just": "..."
 }}
 """
     
@@ -632,7 +757,7 @@ def call_vllm_worker(contexto, system_prompt, user_template):
     """
     
     if contexto["texto"] == "BORRADO":
-        return 2, "no relacionado", None, 0
+        return _fila_vacia("borrado")
     
     # Construir contexto de topics
     contexto_topics = construir_contexto_topics()
@@ -676,30 +801,31 @@ def call_vllm_worker(contexto, system_prompt, user_template):
                 messages=messages,
                 temperature=0,
                 response_format={"type": "json_object"},
-                max_tokens=3000
+                max_tokens=4000 # subido de 3000: ahora hay ~8 campos de justificación en texto libre
             )
             
             raw = response.choices[0].message.content
-            sentimiento, topic_raw, idioma_ia, posicion  = extraer_json_clasificacion(raw)
+            resultado  = extraer_json_clasificacion(raw)
             
-            # Normalizar y consolidar topic
-            topic_norm = normalizar_topic(topic_raw)
+            # Normalizar y consolidar el subtopic (misma lógica de siempre)
+            topic_norm = normalizar_topic(resultado["topic_llm"])
             
             if topic_norm not in ["error", "no relacionado", "comercializacion"]:
-                topic_final = consolidar_topic(topic_norm)
+                resultado["topic_llm"] = consolidar_topic(topic_norm)
             else:
-                topic_final = topic_norm
+                resultado["topic_llm"] = topic_norm
             
-            if sentimiento in [1, -1, 0]:
-                print(f"✅ Clasificado: Sent={sentimiento}, Topic='{topic_final}', Idioma='{idioma_ia}', Pos='{posicion}'")
+            if resultado["posicion"] in (1, -1, 0):
+                print(f"✅ Pertinencia={resultado['pertinencia']} | Postura={resultado['posicion']} | "
+                      f"Subtopic='{resultado['topic_llm']}' | Lang='{resultado['lang']}' | País='{resultado['world_country']}'")
             
-            return sentimiento, topic_final, idioma_ia, posicion 
+            return resultado
             
         except Exception as e:
             print(f"⚠️ Error en intento {intento + 1}: {e}")
             time.sleep(1)
     
-    return 2, "error", None, 0
+    return _fila_vacia("fallo tras reintentos")
 
 # =====================================================
 # PIPELINE PRINCIPAL
@@ -775,16 +901,16 @@ def llm_analysis(u_conf):
             continue
         
         # Añadir columnas de análisis si no existen
-        for col in ["sentimiento", "topic", "IDIOMA_IA", "posicion"]:
+        for col in COLUMNAS_ANALISIS:
             if col not in df.columns:
                 df[col] = ""
             df[col] = df[col].fillna("").astype(str).str.strip()
         
         # Identificar pendientes
         mask_pendiente = (
-            (df["sentimiento"] == "") | (df["sentimiento"] == "nan") |
-            (df["topic"] == "") | (df["topic"] == "nan") |
-            (df["posicion"] == "") | (df["posicion"] == "nan")
+            (df["topic_llm"] == "") | (df["topic_llm"] == "nan") |
+            (df["posicion"] == "") | (df["posicion"] == "nan") |
+            (df["pertinencia"] == "") | (df["pertinencia"] == "nan")
         )
         
         # FILTRO ADICIONAL: Solo analizar contenido RELEVANTE según LLM previo
@@ -833,11 +959,9 @@ def llm_analysis(u_conf):
                 for future in concurrent.futures.as_completed(futures):
                     idx = futures[future]
                     try:
-                        sent, top, idioma, posicion = future.result()
-                        df.loc[idx, "sentimiento"] = str(sent)
-                        df.loc[idx, "topic"] = str(top)
-                        df.loc[idx, "IDIOMA_IA"] = str(idioma)
-                        df.loc[idx, "posicion"]    = str(posicion)
+                        resultado = future.result()
+                        for col in COLUMNAS_ANALISIS:
+                            df.loc[idx, col] = str(resultado[col])
                     except Exception as e:
                         print(f"❌ Error en fila {idx}: {e}")
             

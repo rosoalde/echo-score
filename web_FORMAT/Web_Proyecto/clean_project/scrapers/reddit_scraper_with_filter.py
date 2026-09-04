@@ -10,7 +10,7 @@ import base64
 from pathlib import Path
 from datetime import datetime
 import asyncpraw
-from openai import OpenAI
+from openai import AsyncOpenAI
 from types import SimpleNamespace
 
 # Configuración de rutas
@@ -19,10 +19,13 @@ if str(ROOT_PATH) not in sys.path:
     sys.path.insert(0, str(ROOT_PATH))
 
 import clean_project.config.settings as config
-from clean_project.vllm.model_config import MODELO_ACTIVO, VISION_HABILITADA
+from clean_project.vllm.model_config import (
+    MODELO_ACTIVO, VISION_HABILITADA, EXTRA_BODY_LLM, MAX_TOKENS_GATEKEEPER,
+)
 MODELO_VLM = MODELO_ACTIVO
 
-client = OpenAI(base_url="http://localhost:8001/v1", api_key="local-token")
+# PARA DEBUGEAR AISLADO CAMBIAR http://host.docker.internal:8001/v1 POR http://localhost:8001/v1
+client = AsyncOpenAI(base_url="http://host.docker.internal:8001/v1", api_key="local-token")
 
 # =====================================================
 # 1. UTILIDADES
@@ -114,17 +117,26 @@ async def verificar_relevancia_vlm_reddit(post, b64_images, u_conf):
         for b64 in b64_images[:2]:
             content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
 
+    raw, response = None, None
     try:
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model=MODELO_VLM,
             messages=[{"role": "user", "content": content}],
             response_format={"type": "json_object"},
-            temperature=0
+            temperature=0,
+            max_tokens=MAX_TOKENS_GATEKEEPER,
+            extra_body=EXTRA_BODY_LLM,
         )
-        res = json.loads(response.choices[0].message.content)
+        raw = response.choices[0].message.content
+        res, _ = json.JSONDecoder().raw_decode(raw)
+        print("="*40)
+        print(res)
+        print("="*40)
         return res.get("relevante", False), res.get("razon_relevancia", "N/A"), res.get("idioma", "Desconocido"), res.get("idioma_justificacion", "N/A")
-    except:
-        return True, "Error en validación", "Desconocido", "N/A"
+    except Exception as e:
+        fr = response.choices[0].finish_reason if response else None
+        print(f"⚠️ Raw LLM (fallo parseo, finish_reason={fr}): {raw!r}")
+        return True, f"Error en Gatekeeper: {str(e)}", "Desconocido", "N/A"
 
 # =====================================================
 # 3. SCRAPER PRINCIPAL

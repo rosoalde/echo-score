@@ -16,7 +16,7 @@ load_dotenv()
 client = OpenAI(
     base_url="http://host.docker.internal:8001/v1",
     api_key="local-token",
-    timeout=60.0
+    timeout=600.0
 )
 #MODEL_NAME = "Qwen/Qwen2.5-14B-Instruct-AWQ"#"Qwen/Qwen2.5-VL-7B-Instruct" # Qwen3-VL-8B-Instruct pasar a la versión 3 cuando esté disponible y estable
 NUM_CTX = 30000  # Límite de tokens aproximado para el contexto

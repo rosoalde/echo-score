@@ -12,22 +12,25 @@ from collections import Counter
 import numpy as np
 
 
-## DESCOMENTAR 
-# import sys
-# ROOT_PATH = Path("/home/romina/RRSS_FORTMAT/web_FORMAT/Web_Proyecto")
-# sys.path.insert(0, str(ROOT_PATH))
-# import clean_project.config.settings as config
-##
+# DESCOMENTAR 
+import sys
+ROOT_PATH = Path("/home/romina/RRSS_FORTMAT/web_FORMAT/Web_Proyecto")
+sys.path.insert(0, str(ROOT_PATH))
+import clean_project.config.settings as config
+#
 
-from clean_project.vllm.model_config import MODELO_ACTIVO, VISION_HABILITADA
+from clean_project.vllm.model_config import (
+    MODELO_ACTIVO, VISION_HABILITADA, EXTRA_BODY_LLM, MAX_TOKENS_ANALISIS,
+)
 MODEL_NAME = MODELO_ACTIVO
 
 # =====================================================
 # CONFIGURACIÓN vLLM
 # =====================================================
+# PARA DEBUGEAR AISLADO CAMBIAR http://host.docker.internal:8001/v1 POR http://localhost:8001/v1
 
 client = OpenAI(
-    base_url="http://host.docker.internal:8001/v1",
+    base_url="http://localhost:8001/v1",
     api_key="local-token",
     timeout=60.0
 )
@@ -264,42 +267,6 @@ def extraer_json_clasificacion(raw):
     
     # return 2, "error", None, 0
     #=========================================
-
-def validar_json(data):
-    """Valida y extrae datos del JSON"""
-    if not isinstance(data, dict):
-        return 2, "no relacionado", "Desconocido", 0
-    
-    filtro = data.get("Verificacion_Filtro", {})
-    idioma_detectado = str(filtro.get("Idioma_Real") or "Desconocido")
-    pasa = str(filtro.get("Pasa_el_filtro", "")).upper()
-    
-    if "NO" in pasa:
-        return 2, "no relacionado", idioma_detectado, 0
-    
-    if "Topics" in data and isinstance(data["Topics"], list) and data["Topics"]:
-        item = data["Topics"][0]
-        topic = item.get("Topic", "no relacionado")
-        sentimiento = item.get("Sentimiento", 2)
-        posicion = item.get("Posicion", 0)
-        
-        try:
-            sentimiento = int(sentimiento)
-        except:
-            sentimiento = 2
-        try:
-            posicion = int(posicion)
-            if posicion not in [-1, 0, 1]:
-                posicion = 0
-        except:
-            posicion = 0    
-        
-        if sentimiento not in [1, -1, 0, 2]:
-            sentimiento = 2
-        
-        return sentimiento, str(topic).strip(), idioma_detectado, posicion
-    
-    return 2, "no relacionado", idioma_detectado, 0
 
 # =====================================================
 # PREPARACIÓN DE CONTEXTO SEGÚN NUEVO ESQUEMA
@@ -575,7 +542,7 @@ def _instruccion_lista_idiomas():
     if ruta.exists():
         with open(ruta, "r", encoding="utf-8") as f:
             catalogo = json.load(f)
-        codigos = sorted(catalogo.keys()) if isinstance(catalogo, dict) else sorted(catalogo)
+        codigos = sorted({item["iso1"] for item in catalogo if item.get("iso1")})
         return f"Usa EXCLUSIVAMENTE uno de estos códigos: {', '.join(codigos)}."
     return "Usa el código ISO 639-1 de 2 letras (ej: es, ca, eu, en, fr, pt).  # provisional, sin talkwalker_languages.json"
 
@@ -585,13 +552,20 @@ def _instruccion_lista_paises():
     if ruta.exists():
         with open(ruta, "r", encoding="utf-8") as f:
             catalogo = json.load(f)
-        codigos = sorted(catalogo.keys()) if isinstance(catalogo, dict) else sorted(catalogo)
+        codigos = sorted({item["iso2"] for item in catalogo if item.get("iso2")})
         return f"Usa EXCLUSIVAMENTE uno de estos códigos de país: {', '.join(codigos)}."
     return "Usa el código ISO 3166-1 alpha-2 (ej: ES, MX, AR, FR).  # provisional, sin talkwalker_countries.json"
 
 
 def _instruccion_lista_continentes():
-    return "Usa uno de: AF, AN, AS, EU, NA, OC, SA.  # provisional, sin catálogo Talkwalker de continentes"
+    ruta = Path(__file__).parent / "talkwalker_countries.json"
+    if ruta.exists():
+        with open(ruta, "r", encoding="utf-8") as f:
+            catalogo = json.load(f)
+        codigos = sorted({item["continent"] for item in catalogo if item.get("continent")})
+        if codigos:
+            return f"Usa EXCLUSIVAMENTE uno de estos códigos de continente: {', '.join(codigos)}."
+    return "Usa uno de: AF, AN, AS, EU, NA, OC, SA.  # provisional, sin talkwalker_countries.json"
 
 # =====================================================
 # PROMPTS
@@ -801,10 +775,14 @@ def call_vllm_worker(contexto, system_prompt, user_template):
                 messages=messages,
                 temperature=0,
                 response_format={"type": "json_object"},
-                max_tokens=4000 # subido de 3000: ahora hay ~8 campos de justificación en texto libre
+                max_tokens=MAX_TOKENS_ANALISIS,  # antes: 4000 fijo — ahora depende del modelo activo
+                extra_body=EXTRA_BODY_LLM,
             )
-            
+
             raw = response.choices[0].message.content
+            if response.choices[0].finish_reason == "length":
+                print(f"⚠️ Respuesta cortada por límite de tokens "
+                      f"(finish_reason=length, max_tokens={MAX_TOKENS_ANALISIS})")
             resultado  = extraer_json_clasificacion(raw)
             
             # Normalizar y consolidar el subtopic (misma lógica de siempre)
@@ -991,13 +969,13 @@ if __name__ == "__main__":
     # y descomentar ## DESCOMENTAR 
     # Configuración de prueba
     u_conf = SimpleNamespace(
-        tema="venus", #"Regularización de inmigrantes",#"LUX TOUR",#"Transporte público Valencia",
-        desc_tema="planeta del sistema solar", #"Proceso legal que permite a personas migrantes regular su situación legal en España. Incluye requisitos específicos y derechos laborales temporales.",#"La cuarta gira de conciertos de la cantante española Rosalía, promoviendo su álbum 'Lux', comenzará el 16 de marzo de 2026 en Lyon, Francia, y finalizará el 3 de septiembre de 2026 en San Juan, Puerto Rico.",
+        tema="ROSALIA",#"venus", #"Regularización de inmigrantes",#"LUX TOUR",#"Transporte público Valencia",
+        desc_tema="Rosalia es una cantante española",#"planeta del sistema solar", #"Proceso legal que permite a personas migrantes regular su situación legal en España. Incluye requisitos específicos y derechos laborales temporales.",#"La cuarta gira de conciertos de la cantante española Rosalía, promoviendo su álbum 'Lux', comenzará el 16 de marzo de 2026 en Lyon, Francia, y finalizará el 3 de septiembre de 2026 en San Juan, Puerto Rico.",
         population_scope="GLOBAL",#"España",#"GLOBAL",
         languages=["Castellano", "Catalan","Euskera"],
         general={
-            "output_folder": "/home/romina/pruebas_telegram",#"/home/rrss/proyecto_web/RRSS_version_stance/project_web/Web_Proyecto/datos/admin/regularización_inmigrantes",
-            "keywords": ["venus"],#['cear migratuak', 'cear regularización', 'inmigrantes legales', 'cear regularització', 'amnistía inmigrantes', 'proceso regularización', 'trámites regularización', 'regularizazio migratuak', 'legalización inmigrantes', 'regularización migrantes', 'regularització immigrats', 'regularizazioa migratuak', 'migratuak regularizazioa', 'regularización migratoria', 'requisitos regularización', 'beneficios regularización', 'regularització immigració', 'regularització immigrants', 'regularización inmigrantes', 'real decret regularització', 'real decreto regularización', 'real decreto regularizazioa', 'derechos laborales migrantes', 'regularización extraordinaria', 'regularización personas migrantes']#["Rosalía LUX 2026", "conciertos rosalía 2026", "lux tour rosalía", "rosalía en gira 2026"]
+            "output_folder": "/home/romina/RRSS_FORTMAT/web_FORMAT/Web_Proyecto/clean_project/scrapers/debug_bsky",#"/home/romina/pruebas_telegram",#"/home/rrss/proyecto_web/RRSS_version_stance/project_web/Web_Proyecto/datos/admin/regularización_inmigrantes",
+            "keywords": ["ROSALIA"], #["venus"],#['cear migratuak', 'cear regularización', 'inmigrantes legales', 'cear regularització', 'amnistía inmigrantes', 'proceso regularización', 'trámites regularización', 'regularizazio migratuak', 'legalización inmigrantes', 'regularización migrantes', 'regularització immigrats', 'regularizazioa migratuak', 'migratuak regularizazioa', 'regularización migratoria', 'requisitos regularización', 'beneficios regularización', 'regularització immigració', 'regularització immigrants', 'regularización inmigrantes', 'real decret regularització', 'real decreto regularización', 'real decreto regularizazioa', 'derechos laborales migrantes', 'regularización extraordinaria', 'regularización personas migrantes']#["Rosalía LUX 2026", "conciertos rosalía 2026", "lux tour rosalía", "rosalía en gira 2026"]
         }
     )
     

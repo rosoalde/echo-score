@@ -22,11 +22,14 @@ if str(ROOT_PATH) not in sys.path:
 
 import clean_project.config.settings as config
 
-from clean_project.vllm.model_config import MODELO_ACTIVO, VISION_HABILITADA
+from clean_project.vllm.model_config import (
+    MODELO_ACTIVO, VISION_HABILITADA, EXTRA_BODY_LLM, MAX_TOKENS_GATEKEEPER,
+)
 MODELO_VLM = MODELO_ACTIVO
 
 # Cliente vLLM
-client = OpenAI(base_url="http://host.docker.internal:8001/v1", api_key="local-token")
+# PARA DEBUGEAR AISLADO CAMBIAR http://host.docker.internal:8001/v1 POR http://localhost:8001/v1
+client = OpenAI(base_url="http://host.docker.internal:8001/v1", api_key="local-token") 
 #MODELO_VLM = "Qwen/Qwen2.5-14B-Instruct-AWQ"#"Qwen/Qwen2.5-VL-7B-Instruct"
 
 # =====================================================
@@ -172,8 +175,8 @@ def verificar_relevancia_vlm(detalles, transcripcion, b64_image, u_conf):
     -------------------------
     {{
     "relevante": true/false,
-    "razon": "Explica brevemente por qué es relevante (máx 2 líneas)"
-    "idioma": Idioma detectado del contenido analizado, 
+    "razon": "Explica brevemente por qué es relevante (máx 2 líneas)",
+    "idioma": "Idioma detectado del contenido analizado", 
     "idioma_justificacion": "Explica la razón de la asignación del idioma"
     }}
     """
@@ -182,19 +185,28 @@ def verificar_relevancia_vlm(detalles, transcripcion, b64_image, u_conf):
     if VISION_HABILITADA and b64_image:
         content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64_image}"}})
 
+    raw, response = None, None
     try:
         response = client.chat.completions.create(
             model=MODELO_VLM,
             messages=[{"role": "user", "content": content}],
+            response_format={"type": "json_object"},
             temperature=0,
-            max_tokens=200
+            max_tokens=MAX_TOKENS_GATEKEEPER,
+            extra_body=EXTRA_BODY_LLM,
         )
         raw = response.choices[0].message.content
         clean_raw = re.sub(r"```json|```", "", raw, flags=re.IGNORECASE).strip()
-        res = json.loads(clean_raw)
+
+        res, _ = json.JSONDecoder().raw_decode(clean_raw)
+        print("="*40)
+        print(res)
+        print("="*40)
         return res.get("relevante", False), res.get("razon", "No se proporcionó razón"), res.get("idioma", "Desconocido"), res.get("idioma_justificacion", "N/A")
     except Exception as e:
-        return True, f"Error en Gatekeeper: {str(e)}", "Desconocido", "N/A" # En caso de duda, no descartamos
+        fr = response.choices[0].finish_reason if response else None
+        print(f"⚠️ Raw LLM (fallo parseo, finish_reason={fr}): {raw!r}")
+        return True, f"Error en Gatekeeper: {str(e)}", "Desconocido", "N/A"
 
 # =====================================================
 # 3. SCRAPER CORE
@@ -357,7 +369,7 @@ if __name__ == "__main__":
         desc_tema="Infraestructura portuaria renovada como espacio turístico y cultural con vistas al Mediterráneo.",
         population_scope="Sagunto, España",
         general={
-            "output_folder": "./debug_test",
+            "output_folder": "./debug_test_youtube_inferact",
             "keywords": ["pantalán sagunto", "paseo marítimo sagunto", "renovación pantalán sagunto"],
             "start_date": "2024-08-20",
             "end_date": "2025-03-01"

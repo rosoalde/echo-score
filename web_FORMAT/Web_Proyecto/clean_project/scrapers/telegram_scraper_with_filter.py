@@ -15,7 +15,7 @@ import json
 import sys
 from pathlib import Path
 from datetime import datetime, date
-from openai import OpenAI
+from openai import AsyncOpenAI
 import requests
 import asyncio
 
@@ -24,14 +24,14 @@ if str(ROOT_PATH) not in sys.path:
     sys.path.insert(0, str(ROOT_PATH))
 
 from clean_project.scrapers.canales import CANALES_DEFAULT
-from clean_project.vllm.model_config import MODELO_ACTIVO
+from clean_project.vllm.model_config import MODELO_ACTIVO, EXTRA_BODY_LLM, MAX_TOKENS_GATEKEEPER 
 
 # ═══════════════════════════════════════════════════════════════
 # CONFIGURACIÓN — mismo origen de datos que telegram_raw_downloader.py
 # ═══════════════════════════════════════════════════════════════
 
 import os
-TELEGRAM_RAW_ROOT = Path(os.environ.get("TELEGRAM_RAW_ROOT", "/home/romina/Datos_APIs_RRSS/Datos_telegram/telegram/raw"))
+TELEGRAM_RAW_ROOT = Path(os.environ.get("TELEGRAM_RAW_ROOT", "/Datos_APIs_RRSS/Datos_telegram/telegram/raw"))
 
 print(f"🔎 TELEGRAM_RAW_ROOT = {TELEGRAM_RAW_ROOT}")
 print(f"🔎 ¿Existe la ruta? {TELEGRAM_RAW_ROOT.exists()}")
@@ -43,7 +43,7 @@ else:
 
 print(MODELO_ACTIVO)
 
-client =  OpenAI(base_url="http://host.docker.internal:8001/v1", api_key="local-token")
+client =  AsyncOpenAI(base_url="http://host.docker.internal:8001/v1", api_key="local-token")
 
 # Numéro de llamadas al portero que viajan en simultáneo. vLLM las agrupa
 # internamente — subir esto es lo que de verdad acelera el análisis,
@@ -53,8 +53,8 @@ SEM_TELEGRAM = asyncio.Semaphore(CONCURRENCIA_LLM_TELEGRAM)
 
 
 print("\n =====models=====")
-# a=requests.get("http://localhost:8001/v1/models").json()
-# print(a["data"][0]['id'])
+a=requests.get("http://host.docker.internal:8001/v1/models").json()
+print(a["data"][0]['id'])
 print("=====models=====")
 
 
@@ -184,7 +184,7 @@ REGLAS:
 
 Responde en JSON: {{"relevante": true/false, "razon_relevancia": "...", "idioma": "...", "idioma_justificacion": "..."}}
 """
-
+    raw = None
     try:
         async with SEM_TELEGRAM:
             response = await client.chat.completions.create(
@@ -192,15 +192,19 @@ Responde en JSON: {{"relevante": true/false, "razon_relevancia": "...", "idioma"
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"},
                 temperature=0,
+                max_tokens=MAX_TOKENS_GATEKEEPER,
+                extra_body=EXTRA_BODY_LLM,
             )
-        res = json.loads(response.choices[0].message.content)
-        # print(f"{'=' * 60}")
-        # print(res)
-        # print(f"{'=' * 60}")
+        raw = response.choices[0].message.content
+        res, _ = json.JSONDecoder().raw_decode(raw)
+        print(f"{'=' * 60}")
+        print(res)
+        print(f"{'=' * 60}")
         return res.get("relevante", False), res.get("razon_relevancia", "N/A"), res.get("idioma", "Desconocido"), res.get("idioma_justificacion", "N/A")
     except Exception as e:
-        print(f"⚠️ Error llamando al LLM: {e}")
-        return True, "Error en validación, se mantiene por precaución", "Desconocido", "N/A"
+        fr = response.choices[0].finish_reason if response else None
+        print(f"⚠️ Raw LLM (fallo parseo, finish_reason={fr}): {raw!r}")
+        return True, f"Error en Gatekeeper: {str(e)}", "Desconocido", "N/A"
 
 
 # ═══════════════════════════════════════════════════════════════

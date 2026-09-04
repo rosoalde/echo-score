@@ -9,7 +9,7 @@ import sys
 import base64
 from pathlib import Path
 from datetime import datetime
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 
 # Si es True: se recogen POST (ORIGINAL/AUTENTICO), CITA, COMENTARIO_A_POST y COMENTARIO_A_COMENTARIO.
@@ -23,11 +23,14 @@ if str(ROOT_PATH) not in sys.path:
 
 import clean_project.config.settings as config
 
-from clean_project.vllm.model_config import MODELO_ACTIVO, VISION_HABILITADA
+from clean_project.vllm.model_config import (
+    MODELO_ACTIVO, VISION_HABILITADA, EXTRA_BODY_LLM, MAX_TOKENS_GATEKEEPER,
+)
 MODELO_VLM = MODELO_ACTIVO
 
 # Cliente vLLM
-client = OpenAI(base_url="http://host.docker.internal:8001/v1", api_key="local-token")
+# PARA DEBUGEAR AISLADO CAMBIAR http://host.docker.internal:8001/v1 POR http://localhost:8001/v1
+client = AsyncOpenAI(base_url="http://host.docker.internal:8001/v1", api_key="local-token")
 # MODELO_VLM = "Qwen/Qwen2.5-14B-Instruct-AWQ"#"Qwen/Qwen2.5-VL-7B-Instruct"
 
 # Semáforo para no saturar la red
@@ -214,16 +217,22 @@ async def verificar_relevancia_vlm(post_data, b64_image, u_conf):
     if VISION_HABILITADA and b64_image:
         content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64_image}"}})
 
+    raw, response = None, None
     try:
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model=MODELO_VLM,
             messages=[{"role": "user", "content": content}],
             response_format={"type": "json_object"},
-            temperature=0
+            temperature=0,
+            max_tokens=MAX_TOKENS_GATEKEEPER,
+            extra_body=EXTRA_BODY_LLM,
         )
-        res = json.loads(response.choices[0].message.content)
+        raw = response.choices[0].message.content
+        res, _ = json.JSONDecoder().raw_decode(raw)
         return res.get("relevante", False), res.get("razon_relevancia", "N/A"), res.get("idioma", "Desconocido"), res.get("idioma_justificacion", "N/A")
-    except:
+    except Exception as e:
+        fr = response.choices[0].finish_reason if response else None
+        print(f"⚠️ Raw LLM (fallo parseo, finish_reason={fr}): {raw!r} | {e}")
         return True, "Error en validación, se mantiene por precaución", "Desconocido", "N/A"
 
 # =====================================================

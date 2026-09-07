@@ -16,7 +16,7 @@ client = OpenAI(
 #   --dtype bfloat16 \
 #   --max-model-len 7000 \
 #   --gpu-memory-utilization 0.95
-MODELO = "Qwen/Qwen2.5-14B-Instruct-AWQ"#"Qwen/Qwen2.5-VL-7B-Instruct"
+MODELO = "Inferact/Qwen3.8-27B-NVFP4" #"Qwen/Qwen2.5-14B-Instruct-AWQ"         #"Qwen/Qwen2.5-VL-7B-Instruct"
 
 IDIOMAS_COOFICIALES = {"catalán", "valenciano", "euskera", "gallego"}
 

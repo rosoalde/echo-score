@@ -350,7 +350,7 @@ client = OpenAI(
 #   --dtype bfloat16 \
 #   --max-model-len 7000 \
 #   --gpu-memory-utilization 0.95
-MODELO = "Qwen/Qwen2.5-14B-Instruct-AWQ"#"Qwen/Qwen2.5-VL-7B-Instruct"  "Inferact/Qwen3.8-27B-NVFP4" #
+MODELO = "Inferact/Qwen3.8-27B-NVFP4" #"Qwen/Qwen2.5-14B-Instruct-AWQ"              #"Qwen/Qwen2.5-VL-7B-Instruct"  "Inferact/Qwen3.8-27B-NVFP4" #
 
 IDIOMAS_COOFICIALES = {"catalán", "valenciano", "euskera", "gallego"}
 
@@ -435,6 +435,7 @@ def clasificar_tema_llm(tema: str, population_scope: str, client, MODELO: str) -
     prompt = _PROMPT_CLASIFICAR.format(tema=tema, scope=scope)
 
     try:
+        print(f"   🔔 Llamando al LLM (modelo={MODELO})...")
         response = client.chat.completions.create(
             model=MODELO,
             messages=[
@@ -1343,6 +1344,7 @@ def clasificar_tema_llm(tema: str, population_scope: str) -> str:
     prompt = _PROMPT_CLASIFICAR.format(tema=tema, scope=scope)
 
     try:
+        print(f"   🔔 Llamando al LLM (modelo={MODELO})...")
         response = client.chat.completions.create(
             model=MODELO,
             messages=[
@@ -1719,6 +1721,7 @@ def buscar_contexto_web(tema: str, population_scope: str, max_results: int = 5) 
                     textos.append(f"- {titulo}: {cuerpo}")
             contexto = "\n".join(textos)
             print(f"   🌐 Contexto web obtenido ({len(textos)} resultados)")
+            print(contexto)
             return contexto
     except Exception as e:
         print(f"   ⚠️  Búsqueda web no disponible: {e}")

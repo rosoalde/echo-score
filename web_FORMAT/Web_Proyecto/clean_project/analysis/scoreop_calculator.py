@@ -3,8 +3,8 @@ Calculadora de ScoreOP (Score de Posición Social).
 Implementación adaptada a las columnas reales del proyecto.
 Basado en da Silva (2021) + Oueslati (2023).
 
-IMPORTANTE: Usa la columna 'sentimiento' (no pilares) como stance.
-Filtra por sentimiento != 2 (solo analiza contenido relevante: 1, 0, -1)
+IMPORTANTE: Ahora usa la columna postura, antes usaba la columna 'sentimiento' (no pilares) como stance.
+Ahora filtramos por postura !=2, antes filtrabamos por sentimiento != 2 (solo analiza contenido relevante: 1, 0, -1)
 
 NORMALIZACIÓN (v3):
   ScoreOP_raw   ∈ (-∞, +∞)   — valor bruto acumulado
@@ -45,7 +45,7 @@ class ScoreOPCalculator:
       I(x) = 1+ (R × W_reac) + (S × W_comp) + (C × W_comm)
       W    = Pesos dinámicos: (TSE / M) / Total_Métrica
       F    = Factor de plataforma (solo posts)
-      TSE  = Total Sample Engagement (contenido con sentimiento != 2)
+      TSE  = Total Sample Engagement (contenido con postura (sentimiento) != 2)
     """
 
     def __init__(self, plataforma: str):
@@ -166,21 +166,29 @@ class ScoreOPCalculator:
     # ------------------------------------------------------------------ #
 
     def filtrar_contenido_relevante(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Filtra SOLO contenido con postura ∈ {-1, 0, 1}. 
+        Excluye postura = 2 (no relacionado / spam).
+        Aplica tanto a posts como a comentarios"""
+
         """
-        Filtra SOLO contenido con sentimiento ∈ {-1, 0, 1}.
-        Excluye sentimiento = 2 (no relacionado / spam).
-        Aplica tanto a posts como a comentarios — ningún elemento con
-        sentimiento = 2 debe contribuir al cálculo.
-        """
+        # Filtra SOLO contenido con sentimiento ∈ {-1, 0, 1}.
+        # Excluye sentimiento = 2 (no relacionado / spam).
+        # Aplica tanto a posts como a comentarios — ningún elemento con
+        # sentimiento = 2 debe contribuir al cálculo.
+        """ 
         df = df.copy()
-        df['sentimiento_num'] = pd.to_numeric(df['sentimiento'], errors='coerce')
-        df_relevante = df[df['sentimiento_num'].isin([1, 0, -1])].copy()
+        # df['sentimiento_num'] = pd.to_numeric(df['sentimiento'], errors='coerce')
+        # df_relevante = df[df['sentimiento_num'].isin([1, 0, -1])].copy()
+        df['posicion_num'] = pd.to_numeric(df['posicion'], errors='coerce')
+        df_relevante = df[df['posicion_num'].isin([1,0,-1])]
 
-        print(f"  📊 Contenido filtrado (sentimiento != 2):")
+        # print(f"  📊 Contenido filtrado (sentimiento != 2):")
+        print(f"  📊 Contenido filtrado (postura != 2):")  
         print(f"     Total filas: {len(df)}")
-        print(f"     Relevantes (sent ∈ {{1,0,-1}}): {len(df_relevante)}")
-        print(f"     Excluidos  (sent = 2): {len(df) - len(df_relevante)}")
-
+        # print(f"     Relevantes (sent ∈ {{1,0,-1}}): {len(df_relevante)}")
+        # print(f"     Excluidos  (sent = 2): {len(df) - len(df_relevante)}")
+        print(f"     Relevantes (postura ∈ {{1,0,-1}}): {len(df_relevante)}")
+        print(f"     Excluidos  (postura = 2): {len(df) - len(df_relevante)}")
         return df_relevante
 
     # ------------------------------------------------------------------ #
@@ -228,7 +236,8 @@ class ScoreOPCalculator:
         return impacto
 
     def obtener_stance(self, row: pd.Series) -> int:
-        sent = row.get('sentimiento_num', 0)
+        # sent = row.get('sentimiento_num', 0)
+        sent = row.get('posicion_num', 0)
         return int(sent) if pd.notna(sent) and sent in [1, 0, -1] else 0
 
     # ------------------------------------------------------------------ #
@@ -245,7 +254,8 @@ class ScoreOPCalculator:
         ScoreOP_norm ∈ [-1,  1]   — raw / sup
         ScoreOP_pct  ∈ [ 0,100]   — (norm + 1) / 2 × 100
         """
-        # 1. Filtrar sentimiento != 2 (posts Y comentarios)
+        # ANTES 1. Filtrar sentimiento != 2 (posts Y comentarios)
+        # 1. Filtrar postura != 2 (posts Y comentarios)
         df_rel = self.filtrar_contenido_relevante(df)
         if df_rel.empty:
             print("  ⚠️ No hay contenido relevante")
@@ -330,7 +340,7 @@ class ScoreOPCalculator:
                 'ScoreOP_norm':             round(scoreop_norm, 4),   # ∈ [-1, 1]
                 'ScoreOP_pct':              round(scoreop_pct,  2),   # ∈ [0, 100]
                 # ─────────────────────────────────────────────────────
-                'topic': post_row.get('topic', 'no relacionado'),
+                'topic': post_row.get('topic_llm', post_row.get('topic', 'no relacionado')),
             }
             resultados.append({**fila_original, **fila_calculada})
 
@@ -384,8 +394,11 @@ def calcular_scoreop_por_dataset(data_folder: str, plataforma: str) -> pd.DataFr
         print(f"❌ Error cargando {archivo}: {e}")
         return pd.DataFrame()
 
-    if 'sentimiento' not in df.columns:
-        print("❌ El archivo no tiene columna 'sentimiento'")
+    # if 'sentimiento' not in df.columns:
+    #     print("❌ El archivo no tiene columna 'sentimiento'")
+    #     return pd.DataFrame()
+    if 'posicion' not in df.columns:
+        print("❌ El archivo no tiene columna 'posicion'")
         return pd.DataFrame()
 
     calculator  = ScoreOPCalculator(plataforma)

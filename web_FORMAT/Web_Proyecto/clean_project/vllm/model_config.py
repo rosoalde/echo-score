@@ -13,7 +13,7 @@ Modos disponibles:
 
 # ─────────────────────────────────────────────────────────
 # ← EDITAR: elige "texto", "vision" o "texto_razonador"
-MODO: str = "texto_razonador" #"texto"
+MODO: str = "texto_razonador" #"texto" #"texto_razonador" #"texto"
 # ─────────────────────────────────────────────────────────
 # ← EDITAR (opcional): cambia el nombre del modelo si lo actualizas
 _MODELOS = {
@@ -39,11 +39,20 @@ EXTRA_BODY_LLM: dict = (
     {"chat_template_kwargs": {"enable_thinking": False}} if MODELO_ES_RAZONADOR else {}
 )
 
+
+LLM_KWARGS = {
+    "extra_body": EXTRA_BODY_LLM,
+}
+
+if MODELO_ES_RAZONADOR:
+    LLM_KWARGS["reasoning_effort"] = "low"
+    
 # Tokens de salida por tipo de tarea. Valores de partida — valídalos con
 # test_modelo_debug.py contra ejemplos reales y ajusta si hace falta.
 MAX_TOKENS_GATEKEEPER: int = 1500 if MODELO_ES_RAZONADOR else 200
 MAX_TOKENS_ANALISIS: int = 6000 if MODELO_ES_RAZONADOR else 4000
-
+TIMEOUT_LLM: float = 600.0 if MODELO_ES_RAZONADOR else 60.0
+MAX_TOKENS_PILARES: int = 1500 if MODELO_ES_RAZONADOR else 300
 # ── Resumen al importar ───────────────────────────────────
 print(
     f"[model_config] Modo: {MODO.upper()} | "

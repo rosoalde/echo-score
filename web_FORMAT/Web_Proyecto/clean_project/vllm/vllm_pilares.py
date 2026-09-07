@@ -7,20 +7,38 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from tqdm import tqdm
 from types import SimpleNamespace
-from clean_project.vllm.model_config import MODELO_ACTIVO, VISION_HABILITADA
+
+
+
+# # DESCOMENTAR  / COMENTAR
+# import sys
+# ROOT_PATH = Path("/home/romina/RRSS_FORTMAT/web_FORMAT/Web_Proyecto")
+# sys.path.insert(0, str(ROOT_PATH))
+# import clean_project.config.settings as config
+# #
+from clean_project.vllm.model_config import (
+    MODELO_ACTIVO, VISION_HABILITADA, EXTRA_BODY_LLM, MAX_TOKENS_PILARES, TIMEOUT_LLM, LLM_KWARGS,
+)
 MODEL_NAME = MODELO_ACTIVO
+
 import concurrent.futures
 # Cargar variables de entorno
 load_dotenv()
 
+# PARA DEBUGEAR AISLADO CAMBIAR http://host.docker.internal:8001/v1 POR http://localhost:8001/v1
+
+
 client = OpenAI(
     base_url="http://host.docker.internal:8001/v1",
     api_key="local-token",
-    timeout=600.0
+    timeout=TIMEOUT_LLM,
 )
 #MODEL_NAME = "Qwen/Qwen2.5-14B-Instruct-AWQ"#"Qwen/Qwen2.5-VL-7B-Instruct" # Qwen3-VL-8B-Instruct pasar a la versión 3 cuando esté disponible y estable
 NUM_CTX = 30000  # Límite de tokens aproximado para el contexto
-PILARES_BATCH_SIZE = 100  # Peticiones en paralelo al servidor vLLM
+
+from clean_project.vllm.model_config import MODELO_ES_RAZONADOR
+PILARES_BATCH_SIZE = 16 if MODELO_ES_RAZONADOR else 100
+
 def get_prompt_pilares(tema, desc_tema, keywords_list, population_scope, languages):
     keywords_str = ", ".join(keywords_list) if isinstance(keywords_list, list) else str(keywords_list)
     langs = ", ".join(languages) if languages else "Cualquiera"
@@ -611,34 +629,33 @@ def analizar_pilares_vllm(system_prompt, user_prompt, image_path=None):
                 "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
             })
 
+    response = None
     try:
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content}
+                {"role": "user",   "content": user_content}
             ],
-            temperature=0.0, # Subimos un pelín para que no sea tan robótico
-            max_tokens=300
+            temperature=0.0,
+            max_tokens=MAX_TOKENS_PILARES,
+            response_format={"type": "json_object"},
+            **LLM_KWARGS,
         )
-        
-        respuesta_raw = response.choices[0].message.content.strip()
-        
-        # DEBUG: Imprimir lo que dice el modelo realmente
-        print(f"\n[RAW LLM] -> {respuesta_raw}")
-        
-        # Extractor infalible de JSON usando Regex
+        respuesta_raw = (response.choices[0].message.content or "").strip()
+        print(f"\n[RAW LLM idx={idx}] -> {respuesta_raw!r}")
+ 
         match = re.search(r'\{.*\}', respuesta_raw, re.DOTALL)
         if match:
-            json_str = match.group(0)
-            return json.loads(json_str)
+            resultado_json = json.loads(match.group(0))
         else:
-            print(f"⚠️ No se encontró JSON en la respuesta: {respuesta_raw}")
-            return {}
-            
+            fr = response.choices[0].finish_reason
+            print(f"⚠️ No se encontró JSON (idx={idx}, finish_reason={fr}): {respuesta_raw!r}")
+            return idx, None
+ 
     except Exception as e:
-        print(f"❌ Error en LLM: {e}")
-        return {}
+        print(f"❌ Error LLM (idx={idx}): {e}")
+        return idx, None
 
 def _worker_pilares(idx, texto_preparado, user_template, system_prompt, img_path):
     """
@@ -664,14 +681,19 @@ def _worker_pilares(idx, texto_preparado, user_template, system_prompt, img_path
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user",   "content": user_content}
+                {"role": "user", "content": user_content}
             ],
-            temperature=0.0,
-            max_tokens=300
+            temperature=0.0, # Subimos un pelín para que no sea tan robótico
+            max_tokens=MAX_TOKENS_PILARES,
+            response_format={"type": "json_object"},
+            **LLM_KWARGS,
         )
-        respuesta_raw = response.choices[0].message.content.strip()
-        print(f"\n[RAW LLM idx={idx}] -> {respuesta_raw}")
- 
+        
+        respuesta_raw = (response.choices[0].message.content or "").strip()
+        
+        # DEBUG: Imprimir lo que dice el modelo realmente
+        print(f"\n[RAW LLM] -> {respuesta_raw!r}")
+
         match = re.search(r'\{.*\}', respuesta_raw, re.DOTALL)
         if match:
             resultado_json = json.loads(match.group(0))
@@ -736,10 +758,11 @@ def procesar_pilares_directorio(u_conf, archivos=None):
         df = pd.read_csv(arch, sep=sep, encoding='utf-8', on_bad_lines='skip')
  
         # 1. Filtrar descartados# Con el nuevo vllm_sentiment_topic_new.py el CSV ya no trae 'sentimiento'
-        # (se sustituyó por 'pertinencia'); se mantiene el camino antiguo por si
+        # (se sustituyó por 'posicion'); se mantiene el camino antiguo por si
         # se procesa un *_analizado.csv generado con el esquema previo.
-        if 'pertinencia' in df.columns:
-            df_filtrado = df[df['pertinencia'].astype(str).str.strip().str.lower() == 'relevante'].copy()
+        if 'posicion' in df.columns:
+            df_filtrado = df[df['posicion'].isin([-1, 0, 1])].copy()
+            # df_filtrado = df[df['posicion'].astype(str).str.strip().str.lower() == 'relevante'].copy()
         elif 'sentimiento' in df.columns:
             df['sentimiento'] = pd.to_numeric(df['sentimiento'], errors='coerce')
             df_filtrado = df[df['sentimiento'] != 2].copy()
@@ -825,12 +848,14 @@ def procesar_pilares_directorio(u_conf, archivos=None):
 if __name__ == "__main__":
 
     u_conf = SimpleNamespace(
-    tema = "tiroteo trump",
-    desc_tema = "Un intento de magnicidio durante mitin político de Donald Trump.",
-    population_scope = "SIN CONTEXTO GEOGRAFICO",
-    languages = ["Castellano"],
-    general = {"keywords": ["tiroteo trump", "magnicidio Trump", "ataque mitin Trump"],
-               "output_folder": "/home/rrss/proyecto_web/RRSS_version_stance/project_web/Web_Proyecto/datos/admin/juguete"}
+    tema = "ROSALIA",#"tiroteo trump",
+    desc_tema = "Rosalia es una cantante española",#"Un intento de magnicidio durante mitin político de Donald Trump.",
+    population_scope = "GLOBAL",#"SIN CONTEXTO GEOGRAFICO",
+    languages = [],
+    general = {
+        "keywords": ["ROSALIA"], #["tiroteo trump", "magnicidio Trump", "ataque mitin Trump"],
+        "output_folder": "/home/romina/RRSS_FORTMAT/web_FORMAT/Web_Proyecto/clean_project/scrapers/debug_bsky",#"/home/rrss/proyecto_web/RRSS_version_stance/project_web/Web_Proyecto/datos/admin/juguete"
+        }
     )
     carpeta_prueba = u_conf.general["output_folder"]
     print(f"🧪 Iniciando prueba aislada en: {carpeta_prueba}")

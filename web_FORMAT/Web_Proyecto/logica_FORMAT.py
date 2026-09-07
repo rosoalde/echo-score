@@ -138,6 +138,7 @@ try:
         clasificar_tema, expandir_geografia, generar_keywords_hiperlocal_por_idioma, 
         combinar_keywords_hiperlocal
     )
+    print("IMPORT vllm_keywords2 OK ✅")
 except Exception as e:
     print("ERROR VLLM KEYWORDS:", e)
 
@@ -578,7 +579,8 @@ def _calcular_topics_df(df: pd.DataFrame) -> list:
       pct_medio     – ScoreOP_pct medio del topic [0,100]
     """
     topic_col = (
-        "topic" if "topic" in df.columns
+        "topic_llm" if "topic_llm" in df.columns
+        else "topic" if "topic" in df.columns
         else "TOPIC" if "TOPIC" in df.columns
         else None
     )
@@ -2814,7 +2816,8 @@ def _cargar_analizado_csvs(
     Recupera metadatos desde la BBDD PostgreSQL en lugar de JSON.
 
     Columnas garantizadas en el resultado:
-    - sent_num   : posición sobre el tema (-1, 0, 1, 2=no rel.)
+    - posicion   : postura explícita sobre el tema (-1, 0, 1)
+    - sent_num   : sentimiento sobre el topic (-1, 0, 1, 2=no rel.)
     - sent_topic : sentimiento argumental del topic (-1, 0, 1)
     - tipo_norm  : tipo de publicación normalizado a mayúsculas
     - id_anonimo : hash del usuario
@@ -2920,10 +2923,9 @@ def _cargar_analizado_csvs(
             df["id_anonimo"] = "DESCONOCIDO"
 
     # ── sent_topic: SIEMPRE viene de 'sentimiento' (tono argumental) ──────────
-    if "sentimiento" in df.columns:
-        df["sent_topic"] = pd.to_numeric(
-            df["sentimiento"], errors="coerce"
-        ).fillna(0).astype(int)
+    col_sent_topic = "sentiment_llm" if "sentiment_llm" in df.columns else "sentimiento"
+    if col_sent_topic in df.columns:
+        df["sent_topic"] = pd.to_numeric(df[col_sent_topic], errors="coerce").fillna(0).astype(int)
     else:
         df["sent_topic"] = 0
 
@@ -2993,19 +2995,20 @@ def _cargar_analizado_csvs(
     ).fillna(0)
 
     # sent_num = posicion, pero preservar 2 (no relacionado) desde sentimiento
-    sent_serie = pd.to_numeric(df.get("sentimiento", pd.Series(dtype=float)),
-                               errors="coerce").fillna(2)
-    df["sent_num"] = df["posicion"].where(
-        sent_serie != 2,   # si sentimiento=2 (no rel.), mantener 2
-        other=2
-    ).astype(int)
+    # sent_serie = pd.to_numeric(df.get("sentimiento", pd.Series(dtype=float)),
+    #                            errors="coerce").fillna(2)
+    # df["sent_num"] = df["posicion"].where(
+    #     sent_serie != 2,   # si sentimiento=2 (no rel.), mantener 2
+    #     other=2
+    # ).astype(int)
+    df["sent_num"] = df["posicion"].astype(int)
 
     print(f"[CARGA] sent_num distribucion: "
           f"{df['sent_num'].value_counts().to_dict()}")
 
     # ── topic ─────────────────────────────────────────────────────────────────
-    if "topic" not in df.columns:
-        df["topic"] = "sin topic"
+    col_topic = "topic_llm" if "topic_llm" in df.columns else "topic"
+    df["topic"] = df[col_topic] if col_topic in df.columns else "sin topic"
     df["topic"] = df["topic"].fillna("sin topic").astype(str).str.strip().str.lower()
 
     # ── contenido unificado ───────────────────────────────────────────────────

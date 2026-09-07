@@ -12,15 +12,16 @@ from collections import Counter
 import numpy as np
 
 
-# DESCOMENTAR 
-import sys
-ROOT_PATH = Path("/home/romina/RRSS_FORTMAT/web_FORMAT/Web_Proyecto")
-sys.path.insert(0, str(ROOT_PATH))
-import clean_project.config.settings as config
-#
+# # DESCOMENTAR  / COMENTAR
+# import sys
+# ROOT_PATH = Path("/home/romina/RRSS_FORTMAT/web_FORMAT/Web_Proyecto")
+# sys.path.insert(0, str(ROOT_PATH))
+# import clean_project.config.settings as config
+# #
+
 
 from clean_project.vllm.model_config import (
-    MODELO_ACTIVO, VISION_HABILITADA, EXTRA_BODY_LLM, MAX_TOKENS_ANALISIS,
+    MODELO_ACTIVO, VISION_HABILITADA, EXTRA_BODY_LLM, MAX_TOKENS_ANALISIS, TIMEOUT_LLM, LLM_KWARGS,
 )
 MODEL_NAME = MODELO_ACTIVO
 
@@ -28,11 +29,11 @@ MODEL_NAME = MODELO_ACTIVO
 # CONFIGURACIÓN vLLM
 # =====================================================
 # PARA DEBUGEAR AISLADO CAMBIAR http://host.docker.internal:8001/v1 POR http://localhost:8001/v1
-
+# timeout=None
 client = OpenAI(
-    base_url="http://localhost:8001/v1",
+    base_url="http://host.docker.internal:8001/v1",
     api_key="local-token",
-    timeout=60.0
+    timeout=TIMEOUT_LLM,
 )
 
 # # MODELO MULTIMODAL para análisis con imágenes
@@ -40,7 +41,8 @@ client = OpenAI(
 # # MODELO TEXTO para análisis rápido sin imágenes
 # MODELO_TEXTO = "Qwen/Qwen2.5-14B-Instruct-AWQ"#"Qwen/Qwen2.5-VL-7B-Instruct"
 
-MICRO_BATCH_SIZE = 100  # Reducido para análisis multimodal
+from clean_project.vllm.model_config import MODELO_ES_RAZONADOR
+MICRO_BATCH_SIZE = 16 if MODELO_ES_RAZONADOR else 100
 MAX_RETRIES = 2
 NUM_CTX = 30000
 
@@ -672,18 +674,29 @@ REGLAS:
 🚨 REGLAS:
 1. PROHIBIDO usar palabras de "{tema}" ni "{keywords_str}" en el subtopic.
 2. El subtopic es el aspecto/argumento CONCRETO del tema sobre el que el autor opina — no tiene por qué ser el tema principal; puede ser explícito o implícito.
-3. La ausencia de postura, opinión o posición sobre "{tema}" (posicion=2) IMPIDE identificar un subtopic si el autor opina sobre algo no relacionado con el tema.
-4. REUTILIZACIÓN OBLIGATORIA: revisa los SUBTOPICS EXISTENTES abajo; si el argumento coincide total o parcialmente, reutiliza EXACTAMENTE ese mismo texto. Solo crea uno nuevo si no existe ninguno similar.
-5. Longitud 2-4 palabras, castellano correcto, sin sinónimos si ya existe un subtopic equivalente.
-6. "sent_subtopic": polaridad hacia ESE subtopic (no hacia "{tema}" en general): "1" positiva, "0" neutra, "-1" negativa.
-7. Si "pertinencia" es "irrelevante" o no hay ningún aspecto con opinión identificable, usa "subtopic":"no relacionado" y "sent_subtopic":2.
+3. El subtopic NO debe contener ninguna valoración, juicio, intensidad,
+calidad, resultado o polaridad.
+4. La ausencia de postura, opinión o posición sobre "{tema}" (posicion=2) IMPIDE identificar un subtopic si el autor opina sobre algo no relacionado con el tema.
+5. REUTILIZACIÓN OBLIGATORIA: revisa los SUBTOPICS EXISTENTES abajo; si el argumento coincide total o parcialmente, reutiliza EXACTAMENTE ese mismo texto. Solo crea uno nuevo si no existe ninguno similar. Dos contenidos con opiniones opuestas sobre un mismo aspecto deben generar el MISMO subtopic.
+6. Longitud 2-4 palabras, castellano correcto, sin sinónimos si ya existe un subtopic equivalente.
+7. "sent_subtopic": polaridad hacia ESE subtopic (no hacia "{tema}" en general): "1" positiva, "0" neutra, "-1" negativa.
+8. Si "pertinencia" es "irrelevante" o no hay ningún aspecto con opinión identificable, usa "subtopic":"no relacionado" y "sent_subtopic":2.
 
 
-Ejemplos de construcción del subtopic:
-- Apoyo/positivo: "Mejora de [aspecto]", "Eficiencia en [aspecto]", "Necesidad de [aspecto]"; o apoyando el tema al criticar un obstáculo: "Crítica a [problema/entidad]", "Rechazo a [lo que impide el tema]".
-- Crítica/negativo: "Riesgo de [consecuencia]", "Impacto negativo en [aspecto]", "Falta de [recurso]", "Coste excesivo", "Mala gestión de [aspecto]", "Injusticia en [aspecto]".
-- Neutral: "Información sobre [aspecto]", "Consulta técnica", "Procedimiento de [tema]".
+El subtopic identifica QUÉ ASPECTO se está tratando, mientras que
+"sent_subtopic" identifica QUÉ OPINIÓN expresa el autor SOBRE ESE ASPECTO.
 
+Por tanto:
+- CORRECTO: "limpieza" + sent_subtopic="-1"
+- CORRECTO: "limpieza" + sent_subtopic="1"
+- CORRECTO: "calidad del servicio" + sent_subtopic="0"
+- INCORRECTO: "limpieza deficiente"
+- INCORRECTO: "buena limpieza"
+- INCORRECTO: "mala limpieza"
+- INCORRECTO: "excelente servicio"
+- INCORRECTO: "servicio pésimo"
+🚨 La valoración NO debe codificarse dentro del nombre del subtopic.
+Debe codificarse EXCLUSIVAMENTE mediante "sent_subtopic".
 
 __TOPICS_EXISTENTES__
 
@@ -776,7 +789,7 @@ def call_vllm_worker(contexto, system_prompt, user_template):
                 temperature=0,
                 response_format={"type": "json_object"},
                 max_tokens=MAX_TOKENS_ANALISIS,  # antes: 4000 fijo — ahora depende del modelo activo
-                extra_body=EXTRA_BODY_LLM,
+                **LLM_KWARGS,
             )
 
             raw = response.choices[0].message.content

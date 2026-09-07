@@ -1,4 +1,5 @@
 """
+/home/romina/RRSS_FORTMAT/web_FORMAT/Web_Proyecto/clean_project/vllm/vllm_keywords2.py
 PATCH — Clasificación Hiperlocal / Universal agnóstica
 =======================================================
 Sustituye las funciones hardcodeadas de España + transporte por equivalentes
@@ -441,12 +442,12 @@ def clasificar_tema_llm(tema: str, population_scope: str, client, MODELO: str) -
             messages=[
                 {
                     "role": "system",
-                    "content": (
+                    "content": [{"type": "text", "text": (
                         "You are a classification expert. "
-                        "You respond ONLY with valid JSON, no markdown, no extra text."
-                    )
+                        "Respond ONLY with valid JSON, no markdown, no extra text."
+                    )}]
                 },
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": [{"type": "text", "text": f"{prompt}"}]}
             ],
             response_format={"type": "json_object"},
             temperature=0.0
@@ -559,13 +560,14 @@ def expandir_tema(tema: str, population_scope: str) -> dict | None:
             messages=[
                 {
                     "role": "system",
-                    "content": "Eres un analista experto. Respondes únicamente en JSON válido."
+                    "content": [{"type": "text", "text": "Eres un analista experto. Respondes únicamente en JSON válido."}]
                 },
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": [{"type": "text", "text": f"{prompt}"}]}
             ],
             response_format={"type": "json_object"},
             temperature=0.0
         )
+
         raw = response.choices[0].message.content
         return json.loads(raw)
     except Exception as e:
@@ -712,15 +714,15 @@ def generar_keywords_por_idioma(tema: str, idioma: str, population_scope: str, b
             messages=[
                 {
                     "role": "system",
-                    "content": (
+                    "content": [{"type": "text", "text": (
                         "Eres un keyword generator experto en redes sociales. "
                         "Respondes solo en JSON válido. "
                         "Nunca usas términos genéricos sin anclaje geográfico o temático concreto. "
                         "Nunca incluyes palabras de noticias (noticias, hoy, reciente). "
                         "Nunca incluyes números de línea sin el nombre del operador (línia 1, línea 3)."
-                    )
+                    )}]
                 },
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": [{"type": "text", "text": f"{prompt}"}]}
             ],
             response_format={"type": "json_object"},
             temperature=0.1
@@ -803,13 +805,13 @@ NO inventes ni combines nombres que no hayas visto en fuentes reales.
             messages=[
                 {
                     "role": "system",
-                    "content": (
+                    "content": [{"type": "text", "text": (
                         "You are a world geography expert. "
                         "You respond ONLY with valid JSON. "
                         "You NEVER invent names of places, operators, or infrastructure."
-                    )
+                    )}]
                 },
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": [{"type": "text", "text": f"{prompt}"}]}
             ],
             response_format={"type": "json_object"},
             temperature=0.0
@@ -1023,15 +1025,15 @@ def generar_keywords_hiperlocal_por_idioma(
             messages=[
                 {
                     "role": "system",
-                    "content": (
+                    "content": [{"type": "text", "text": (
                         "You are a social media keyword generation expert specializing in "
                         "local services and municipal topics worldwide. "
                         "You respond ONLY with valid JSON. "
                         "You NEVER invent operator names, line names, or infrastructure names. "
                         "You NEVER include temporal words (news, today, latest, noticias, hoy)."
-                    )
+                    )}]
                 },
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": [{"type": "text", "text": f"{prompt}"}]}
             ],
             response_format={"type": "json_object"},
             temperature=0.15,  # Ligeramente más alto para cubrir variantes locales
@@ -1350,12 +1352,12 @@ def clasificar_tema_llm(tema: str, population_scope: str) -> str:
             messages=[
                 {
                     "role": "system",
-                    "content": (
+                    "content": [{"type": "text", "text": (
                         "You are a classification expert. "
                         "Respond ONLY with valid JSON, no markdown, no extra text."
-                    )
+                    )}]
                 },
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": [{"type": "text", "text": f"{prompt}"}]}
             ],
             response_format={"type": "json_object"},
             temperature=0.0
@@ -1432,13 +1434,13 @@ def expandir_geografia(tema: str, population_scope: str) -> dict:
             messages=[
                 {
                     "role": "system",
-                    "content": (
+                    "content": [{"type": "text", "text": (
                         "You are a world geography expert. "
                         "Respond ONLY with valid JSON. "
                         "NEVER invent names of places, operators, or infrastructure."
-                    )
+                    )}]
                 },
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": [{"type": "text", "text": f"{prompt}"}]}
             ],
             response_format={"type": "json_object"},
             temperature=0.0
@@ -1599,15 +1601,15 @@ def generar_keywords_hiperlocal_por_idioma(
             messages=[
                 {
                     "role": "system",
-                    "content": (
+                    "content": [{"type": "text", "text": (
                         "You are a social media keyword generation expert specializing in "
                         "local services and municipal topics worldwide. "
                         "Respond ONLY with valid JSON. "
                         "NEVER invent operator names, line names, or infrastructure names. "
                         "NEVER include temporal words (news, today, noticias, hoy, heute)."
                     )
-                },
-                {"role": "user", "content": prompt}
+                }]},
+                {"role": "user", "content": [{"type": "text", "text": f"{prompt}"}]}
             ],
             response_format={"type": "json_object"},
             temperature=0.15,

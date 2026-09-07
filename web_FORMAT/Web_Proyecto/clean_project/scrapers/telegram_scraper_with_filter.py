@@ -15,7 +15,7 @@ import json
 import sys
 from pathlib import Path
 from datetime import datetime, date
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, OpenAI
 import requests
 import asyncio
 
@@ -55,6 +55,23 @@ SEM_TELEGRAM = asyncio.Semaphore(CONCURRENCIA_LLM_TELEGRAM)
 print("\n =====models=====")
 a=requests.get("http://host.docker.internal:8001/v1/models").json()
 print(a["data"][0]['id'])
+
+
+# --- Canario LLM: se ejecuta en el import, sin async/await ---
+_client_test = OpenAI(base_url="http://host.docker.internal:8001/v1", api_key="local-token")
+try:
+    _resp_test = _client_test.chat.completions.create(
+        model=MODELO_ACTIVO,
+        messages=[{"role": "user", "content": [{"type": "text", "text": "dime dia y hora actual. Responde en JSON con claves 'fecha' y 'hora'"}]}],
+        response_format={"type": "json_object"},
+        temperature=0,
+        extra_body=EXTRA_BODY_LLM,
+    )
+    print(f"✅ Canario LLM OK: {_resp_test.choices[0].message.content!r}")
+except Exception as e:
+    print(f"⚠️ Canario LLM falló en import: {e}")
+# --- fin canario ---
+
 print("=====models=====")
 
 

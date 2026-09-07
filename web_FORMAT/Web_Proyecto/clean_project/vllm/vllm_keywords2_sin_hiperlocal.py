@@ -208,7 +208,8 @@ def expandir_tema(tema: str, population_scope: str) -> dict | None:
                 {"role": "user", "content": prompt}
             ],
             response_format={"type": "json_object"},
-            temperature=0.0
+            temperature=0.0,
+            extra_body=EXTRA_BODY_LLM,
         )
         raw = response.choices[0].message.content
         return json.loads(raw)
@@ -622,7 +623,8 @@ def generar_keywords_por_idioma(tema: str, idioma: str, population_scope: str, b
                 {"role": "user", "content": prompt}
             ],
             response_format={"type": "json_object"},
-            temperature=0.1
+            temperature=0.1,
+            extra_body=EXTRA_BODY_LLM,
         )
         raw = response.choices[0].message.content
         data = json.loads(raw)

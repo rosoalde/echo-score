@@ -1178,7 +1178,7 @@ async def aux_get_visual_semantico(
             "plataformas":     plataformas_disponibles,
             "total_posts":     int(len(df_all[df_all["tipo_norm"].isin(TIPOS_POST_SET)])),
             "coherencia_llm":  True,
-            "tiene_posicion":  "posicion" in df_all.columns,
+            "tiene_postura":  "postura" in df_all.columns,
         },
     }
 

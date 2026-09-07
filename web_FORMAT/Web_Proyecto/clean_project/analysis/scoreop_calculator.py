@@ -179,8 +179,8 @@ class ScoreOPCalculator:
         df = df.copy()
         # df['sentimiento_num'] = pd.to_numeric(df['sentimiento'], errors='coerce')
         # df_relevante = df[df['sentimiento_num'].isin([1, 0, -1])].copy()
-        df['posicion_num'] = pd.to_numeric(df['posicion'], errors='coerce')
-        df_relevante = df[df['posicion_num'].isin([1,0,-1])]
+        df['postura_num'] = pd.to_numeric(df['postura'], errors='coerce')
+        df_relevante = df[df['postura_num'].isin([1,0,-1])]
 
         # print(f"  📊 Contenido filtrado (sentimiento != 2):")
         print(f"  📊 Contenido filtrado (postura != 2):")  
@@ -237,7 +237,7 @@ class ScoreOPCalculator:
 
     def obtener_stance(self, row: pd.Series) -> int:
         # sent = row.get('sentimiento_num', 0)
-        sent = row.get('posicion_num', 0)
+        sent = row.get('postura_num', 0)
         return int(sent) if pd.notna(sent) and sent in [1, 0, -1] else 0
 
     # ------------------------------------------------------------------ #
@@ -397,8 +397,8 @@ def calcular_scoreop_por_dataset(data_folder: str, plataforma: str) -> pd.DataFr
     # if 'sentimiento' not in df.columns:
     #     print("❌ El archivo no tiene columna 'sentimiento'")
     #     return pd.DataFrame()
-    if 'posicion' not in df.columns:
-        print("❌ El archivo no tiene columna 'posicion'")
+    if 'postura' not in df.columns:
+        print("❌ El archivo no tiene columna 'postura'")
         return pd.DataFrame()
 
     calculator  = ScoreOPCalculator(plataforma)

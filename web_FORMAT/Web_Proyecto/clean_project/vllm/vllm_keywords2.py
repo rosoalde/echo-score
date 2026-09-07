@@ -30,6 +30,27 @@ from openai import OpenAI
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from ddgs import DDGS
 
+from clean_project.vllm.model_config import MODELO_ACTIVO, EXTRA_BODY_LLM
+
+client = OpenAI(base_url="http://host.docker.internal:8001/v1", api_key="token-local")
+MODELO = MODELO_ACTIVO  # en vez de hardcodear el string
+
+
+# ==============================
+# Configuración ANTIGUA
+# ==============================
+# client = OpenAI(
+#     base_url="http://host.docker.internal:8001/v1",
+#     api_key="token-local"
+# )
+# # vllm serve Qwen/Qwen2.5-14B-Instruct \
+# #   --port 8001 \
+# #   --dtype bfloat16 \
+# #   --max-model-len 7000 \
+# #   --gpu-memory-utilization 0.95
+# MODELO = "Inferact/Qwen3.8-27B-NVFP4" #"Qwen/Qwen2.5-14B-Instruct-AWQ"              #"Qwen/Qwen2.5-VL-7B-Instruct"  "Inferact/Qwen3.8-27B-NVFP4" #
+
+
 def reducir_redundancias(keywords: list) -> list:
     """
     Si 'semana santa sagunto' existe, elimina 'semana santa sagunto procesiones'
@@ -339,19 +360,7 @@ TEMA: "trasporto pubblico" | LUOGO: Milano
 
 
 
-# ==============================
-# Configuración
-# ==============================
-client = OpenAI(
-    base_url="http://host.docker.internal:8001/v1",
-    api_key="token-local"
-)
-# vllm serve Qwen/Qwen2.5-14B-Instruct \
-#   --port 8001 \
-#   --dtype bfloat16 \
-#   --max-model-len 7000 \
-#   --gpu-memory-utilization 0.95
-MODELO = "Inferact/Qwen3.8-27B-NVFP4" #"Qwen/Qwen2.5-14B-Instruct-AWQ"              #"Qwen/Qwen2.5-VL-7B-Instruct"  "Inferact/Qwen3.8-27B-NVFP4" #
+
 
 IDIOMAS_COOFICIALES = {"catalán", "valenciano", "euskera", "gallego"}
 
@@ -450,7 +459,8 @@ def clasificar_tema_llm(tema: str, population_scope: str, client, MODELO: str) -
                 {"role": "user", "content": [{"type": "text", "text": f"{prompt}"}]}
             ],
             response_format={"type": "json_object"},
-            temperature=0.0
+            temperature=0.0,
+            extra_body=EXTRA_BODY_LLM,
         )
         raw = response.choices[0].message.content
         resultado = json.loads(raw)
@@ -565,7 +575,8 @@ def expandir_tema(tema: str, population_scope: str) -> dict | None:
                 {"role": "user", "content": [{"type": "text", "text": f"{prompt}"}]}
             ],
             response_format={"type": "json_object"},
-            temperature=0.0
+            temperature=0.0,
+            extra_body=EXTRA_BODY_LLM,
         )
 
         raw = response.choices[0].message.content
@@ -725,7 +736,8 @@ def generar_keywords_por_idioma(tema: str, idioma: str, population_scope: str, b
                 {"role": "user", "content": [{"type": "text", "text": f"{prompt}"}]}
             ],
             response_format={"type": "json_object"},
-            temperature=0.1
+            temperature=0.1,
+            extra_body=EXTRA_BODY_LLM,
         )
         raw = response.choices[0].message.content
         data = json.loads(raw)
@@ -814,7 +826,8 @@ NO inventes ni combines nombres que no hayas visto en fuentes reales.
                 {"role": "user", "content": [{"type": "text", "text": f"{prompt}"}]}
             ],
             response_format={"type": "json_object"},
-            temperature=0.0
+            temperature=0.0,
+            extra_body=EXTRA_BODY_LLM,
         )
         raw = response.choices[0].message.content
         resultado = json.loads(raw)
@@ -1037,7 +1050,8 @@ def generar_keywords_hiperlocal_por_idioma(
             ],
             response_format={"type": "json_object"},
             temperature=0.15,  # Ligeramente más alto para cubrir variantes locales
-        )
+            extra_body=EXTRA_BODY_LLM,
+            )
         raw = response.choices[0].message.content
         data = json.loads(raw)
         keywords = data.get("keywords", [])
@@ -1360,7 +1374,8 @@ def clasificar_tema_llm(tema: str, population_scope: str) -> str:
                 {"role": "user", "content": [{"type": "text", "text": f"{prompt}"}]}
             ],
             response_format={"type": "json_object"},
-            temperature=0.0
+            temperature=0.0,
+            extra_body=EXTRA_BODY_LLM,
         )
         raw = response.choices[0].message.content
         resultado = json.loads(raw)
@@ -1443,7 +1458,8 @@ def expandir_geografia(tema: str, population_scope: str) -> dict:
                 {"role": "user", "content": [{"type": "text", "text": f"{prompt}"}]}
             ],
             response_format={"type": "json_object"},
-            temperature=0.0
+            temperature=0.0,
+            extra_body=EXTRA_BODY_LLM,
         )
         raw = response.choices[0].message.content
         resultado = json.loads(raw)
@@ -1613,6 +1629,7 @@ def generar_keywords_hiperlocal_por_idioma(
             ],
             response_format={"type": "json_object"},
             temperature=0.15,
+            extra_body=EXTRA_BODY_LLM,
         )
         raw = response.choices[0].message.content
         data = json.loads(raw)

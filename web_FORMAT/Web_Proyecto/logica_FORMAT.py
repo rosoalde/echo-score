@@ -2932,12 +2932,12 @@ def _cargar_analizado_csvs(
     # ── sent_num: viene de 'posicion' (postura sobre el tema) ────────────────
     # Calcular on-demand por archivo si falta o está incompleta
     tiene_posicion = (
-        "posicion" in df.columns and
-        pd.to_numeric(df["posicion"], errors="coerce").notna().mean() > 0.3
+        "postura" in df.columns and
+        pd.to_numeric(df["postura"], errors="coerce").notna().mean() > 0.3
     )
 
     if not tiene_posicion:
-        print(f"[CARGA] 🔄 Columna 'posicion' ausente o incompleta. "
+        print(f"[CARGA] 🔄 Columna 'postura' ausente o incompleta. "
             f"Calculando on-demand con vLLM…")
 
         dfs_con_posicion = []
@@ -2983,14 +2983,14 @@ def _cargar_analizado_csvs(
             ignore_index=True
         )
 
-        df["posicion"] = df_reconstruido.get("posicion", 0)
+        df["postura"] = df_reconstruido.get("postura", 0)
 
     # Garantizar que exista siempre
-    if "posicion" not in df.columns:
-        df["posicion"] = 0
+    if "postura" not in df.columns:
+        df["postura"] = 0
 
-    df["posicion"] = pd.to_numeric(
-        df["posicion"],
+    df["postura"] = pd.to_numeric(
+        df["postura"],
         errors="coerce"
     ).fillna(0)
 
@@ -3001,7 +3001,7 @@ def _cargar_analizado_csvs(
     #     sent_serie != 2,   # si sentimiento=2 (no rel.), mantener 2
     #     other=2
     # ).astype(int)
-    df["sent_num"] = df["posicion"].astype(int)
+    df["sent_num"] = df["postura"].astype(int)
 
     print(f"[CARGA] sent_num distribucion: "
           f"{df['sent_num'].value_counts().to_dict()}")
@@ -3528,14 +3528,14 @@ def _calcular_coherencia_llm_batch(
     pendientes = []
     for item in posts_con_bigramas:
         post_id   = str(item["post_id"])
-        posicion  = int(item.get("posicion", 0))
+        postura  = int(item.get("postura", 0))
         contenido = str(item.get("contenido", ""))
         for termino in item.get("terminos", []):
             key = f"{post_id}::{termino}"
             if key not in cache:
                 pendientes.append({
                     "key":      key,
-                    "posicion": posicion,
+                    "postura": postura,
                     "contenido": contenido,
                     "termino":  termino,
                 })
@@ -3633,7 +3633,7 @@ def _calcular_coherencia_llm_batch(
         for item in pendientes:
             t   = item["termino"].lower()
             ctx = item["contenido"].lower()
-            pos = item["posicion"]
+            pos = item["postura"]
             idx_t = ctx.find(t)
             ventana = ctx[max(0, idx_t - 60): idx_t + 10] if idx_t >= 0 else ""
             es_contraste = any(m in ventana for m in _CONTRASTE)
@@ -3651,7 +3651,7 @@ def _calcular_coherencia_llm_batch(
         # Construir items con texto limpio para evitar JSON roto
         items_str = "\n".join([
             f'{j+1}. "{_limpiar_para_json(it["termino"], 40)}" | '
-            f'postura={it["posicion"]} | '
+            f'postura={it["postura"]} | '
             f'texto="{_limpiar_para_json(it["contenido"], 120)}"'
             for j, it in enumerate(lote)
         ])

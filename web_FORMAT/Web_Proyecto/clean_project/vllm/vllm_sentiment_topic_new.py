@@ -123,8 +123,8 @@ COLUMNAS_ANALISIS = [
     "justif_region",          # <- region_just
     "world_city",              # <- ciudad
     "justif_ciudad",            # <- ciudad_just
-    "posicion",                  # <- posicion
-    "justif_posicion",            # <- posicion_just
+    "postura",                  # <- postura
+    "justif_postura",            # <- postura_just
     "topic_llm",                   # <- subtopic
     "justif_topic",                 # <- subtopic_just
     "sentiment_llm",                 # <- sent_subtopic
@@ -158,7 +158,7 @@ def _fila_vacia(motivo=""):
         "world_country": "", "justif_pais": "",
         "world_region": "", "justif_region": "",
         "world_city": "", "justif_ciudad": "",
-        "posicion": 2, "justif_posicion": motivo,
+        "postura": 2, "justif_postura": motivo,
         "topic_llm": "error", "justif_topic": motivo,
         "sentiment_llm": 2, "justif_sentimiento": motivo,
     }
@@ -183,8 +183,8 @@ def validar_json(data):
         "justif_region":      str(data.get("region_just", "") or "").strip(),
         "world_city":         str(data.get("ciudad", "") or "").strip(),
         "justif_ciudad":      str(data.get("ciudad_just", "") or "").strip(),
-        "posicion":           _entero_seguro(data.get("posicion"), {-1, 0, 1, 2}, default=2),
-        "justif_posicion":    str(data.get("posicion_just", "") or "").strip(),
+        "postura":           _entero_seguro(data.get("postura"), {-1, 0, 1, 2}, default=2),
+        "justif_postura":    str(data.get("postura_just", "") or "").strip(),
         "topic_llm":          str(data.get("subtopic", "") or "no relacionado").strip(),
         "justif_topic":       str(data.get("subtopic_just", "") or "").strip(),
         "sentiment_llm":      _entero_seguro(data.get("sent_subtopic"), {-1, 0, 1, 2}, default=2),
@@ -619,12 +619,11 @@ def build_prompts(tema, desc_tema, keywords_list, population_scope, languages):
 Marca "pertinencia":"irrelevante" si:
 1. IDIOMA: el [CONTENIDO] no está en {langs}.
 {geo_instruction}
-3. SPAM/PUBLICIDAD: mensajes sin texto coherente o que promueven productos/servicios sin relación con "{tema}".
-4. AJENO: "{tema}" NO es el foco del [CONTENIDO], aunque se mencione de forma secundaria o contextual.
+2. SPAM/PUBLICIDAD: mensajes sin texto coherente o que promueven productos/servicios sin relación con "{tema}".
+3. AJENO: "{tema}" NO es el foco del [CONTENIDO], aunque se mencione de forma secundaria o contextual.
 
 ⚠️ NO excluyas noticias/citas relevantes al tema.
-Si "pertinencia":"irrelevante" → aun así completa "idioma" (Paso 1) y la ubicación del autor (Paso 2); usa "posicion":2, "subtopic":"no relacionado", "sent_subtopic":2, y explica en cada "_just" que no aplica por no ser pertinente.
-
+Si "pertinencia":"irrelevante" → completa "idioma" y la ubicación del autor; usa "subtopic":"no relacionado" y "sent_subtopic":2. La "postura" se establece en 2 porque el contenido no pertenece al objeto de análisis. Explica en "_just" que no aplica el motivo por el cual se excluye (idioma, spam, ajeno).
 
 --- PASO 1: IDIOMA DEL CONTENIDO ---
 Identifica el idioma del bloque [CONTENIDO] (ignora el idioma de [TÍTULO]/[POST PADRE]/etc.).
@@ -654,29 +653,35 @@ Si no hay NINGUNA señal fiable sobre el AUTOR → usa listas vacías [] en "con
 
 
 --- PASO 3: POSTURA/POSICIÓN/OPINIÓN SOBRE "{tema}" (a nivel de TODA la publicación, no por subtopic) ---
-Determina la POSTURA O POSICIÓN O OPINIÓN del autor —explícita O implícita— sobre "{tema}" EN SÍ MISMO (no sobre su contexto, gestión puntual o servicios relacionados):
-- "1": apoya, defiende o se posiciona u opina a favor de "{tema}", explícita o implícitamente.
-- "-1": rechaza, critica o se posiciona u opina en contra de "{tema}" en sí mismo, explícita o implícitamente.
-- "0": el autor SÍ toma postura sobre "{tema}", pero es neutral/equilibrada (pros y contras, sin inclinarse claramente).
-- "2": el [CONTENIDO] no expresa NINGUNA postura, posición u opinión sobre "{tema}" —ni explícita ni implícita— aunque sea pertinente (p. ej. información pura, pregunta, dato objetivo sin valoración).
+Determina la POSTURA O POSICIÓN O OPINIÓN del autor —explícita O implícita— sobre "{tema}" EN SU CONJUNTO (no sobre su contexto, gestión puntual o servicios relacionados):
+La postura debe reflejar únicamente la orientación global del autor hacia el tema de análisis. NO confundas la postura sobre el tema con el sentimiento o valoración 
+expresada sobre un aspecto concreto del tema.
 
-⚠️ "0" y "2" NO son lo mismo: "0" es una postura posición u opinión neutral EXPRESADA; "2" es AUSENCIA de postura posición u opinión.
+Una valoración positiva o negativa de un aspecto, característica, componente, funcionamiento, experiencia o resultado del tema NO implica automáticamente una postura positiva o negativa hacia el tema.
 
+- "1": el autor muestra una postura global positiva, favorable o de apoyo hacia "{tema}", explícita o implícitamente.
+- "-1": el autor muestra una postura global negativa, desfavorable, de rechazo o contraria hacia "{tema}" en sí mismo, explícita o implícitamente.
+- "0": el autor expresa una postura explícitamente neutral, ambivalente o equilibrada hacia "{tema}", combinando valoraciones positivas y negativas sin que predomine claramente una orientación.
+- "2": el contenido es pertinente, pero NO permite identificar una postura global del autor hacia "{tema}" —ni explícita ni implícita— aunque sea pertinente (p. ej. información pura, pregunta, dato objetivo sin valoración).
+
+⚠️ "0" y "2" NO son lo mismo: "0" significa que el autor expresa una postura neutral o equilibrada respecto a "{tema}"; "2" significa que NO se puede determinar ninguna postura respecto a "{tema}".
 
 REGLAS:
-- Criticar algo RELACIONADO con "{tema}" ≠ estar en contra de "{tema}". Ejemplo: Si el tema de análisis es el "bikesharing", el contenido: "el alcalde quitó los carriles bici" → posicion=2 (no es postura posición u opinión sobre el tema (bikesharing) en sí).
-- Señalar un fallo puntual de un servicio ≠ rechazarlo. Ejemplo: "bicing siempre falla" → posicion=2 (usuario que señala un problema puntual, no rechaza el concepto).
-- Solo marcar -1 si hay rechazo (explícito o implícito) al concepto, medida o servicio en sí. Ejemplo: "el bikesharing destruye el comercio" → posicion=-1.
-- Si "pertinencia" es "irrelevante", usa directamente posicion=2.
+- Una valoración sobre un aspecto concreto de "{tema}" debe clasificarse como sentimiento del subtopic y NO como postura hacia "{tema}", salvo que el contenido permita identificar además una postura global hacia el tema.
+- Una valoración negativa de un aspecto concreto de "{tema}" NO implica por sí sola una postura negativa hacia "{tema}". Ejemplo: si el tema es "bikesharing", "las bicis de Bicing están siempre rotas" → postura=2, subtopic="estado de las bicicletas", sentiment_llm=-1.
+- Una valoración positiva de un aspecto concreto de "{tema}" NO implica por sí sola una postura positiva hacia "{tema}". Ejemplo: si el tema es "bikesharing", "las bicis están muy bien cuidadas" → postura=2, subtopic="estado de las bicicletas", sentiment_llm=1.
+- Solo marcar -1 cuando el contenido permita identificar una posición global negativa hacia "{tema}", explícita o implícitamente. Una valoración negativa de un aspecto concreto no es suficiente por sí sola.
+- Solo marcar 1 cuando el contenido permita identificar una posición global positiva hacia "{tema}", explícita o implícitamente. Una valoración positiva de un aspecto concreto no es suficiente por sí sola.
+- Si "pertinencia" es "irrelevante", usa directamente postura=2.
 
 --- PASO 4: SUBTOPIC (aspecto/argumento del comentario sobre el tema) + SU SENTIMIENTO ---
 
 🚨 REGLAS:
 1. PROHIBIDO usar palabras de "{tema}" ni "{keywords_str}" en el subtopic.
-2. El subtopic es el aspecto/argumento CONCRETO del tema sobre el que el autor opina — no tiene por qué ser el tema principal; puede ser explícito o implícito.
+2. El subtopic es el aspecto, característica, componente, funcionamiento, experiencia, resultado o argumento CONCRETO del tema sobre el que el autor expresa una valoración u opinión. Debe identificar QUÉ aspecto concreto se está valorando, sin incorporar la valoración.
 3. El subtopic NO debe contener ninguna valoración, juicio, intensidad,
 calidad, resultado o polaridad.
-4. La ausencia de postura, opinión o posición sobre "{tema}" (posicion=2) IMPIDE identificar un subtopic si el autor opina sobre algo no relacionado con el tema.
+4. La ausencia de postura, opinión o posición sobre "{tema}" (postura=2) IMPIDE identificar un subtopic si el autor opina sobre algo no relacionado con el tema.
 5. REUTILIZACIÓN OBLIGATORIA: revisa los SUBTOPICS EXISTENTES abajo; si el argumento coincide total o parcialmente, reutiliza EXACTAMENTE ese mismo texto. Solo crea uno nuevo si no existe ninguno similar. Dos contenidos con opiniones opuestas sobre un mismo aspecto deben generar el MISMO subtopic.
 6. Longitud 2-4 palabras, castellano correcto, sin sinónimos si ya existe un subtopic equivalente.
 7. "sent_subtopic": polaridad hacia ESE subtopic (no hacia "{tema}" en general): "1" positiva, "0" neutra, "-1" negativa.
@@ -718,8 +723,8 @@ __CONTENIDO_ANALIZAR__
   "region_just": "...",
   "ciudad": "...",
   "ciudad_just": "...",
-  "posicion": <-1|0|1|2>,
-  "posicion_just": "...",
+  "postura": <-1|0|1|2>,
+  "postura_just": "...",
   "subtopic": "...",
   "subtopic_just": "...",
   "sent_subtopic": <-1|0|1>,
@@ -806,8 +811,8 @@ def call_vllm_worker(contexto, system_prompt, user_template):
             else:
                 resultado["topic_llm"] = topic_norm
             
-            if resultado["posicion"] in (1, -1, 0):
-                print(f"✅ Pertinencia={resultado['pertinencia']} | Postura={resultado['posicion']} | "
+            if resultado["postura"] in (1, -1, 0):
+                print(f"✅ Pertinencia={resultado['pertinencia']} | Postura={resultado['postura']} | "
                       f"Subtopic='{resultado['topic_llm']}' | Lang='{resultado['lang']}' | País='{resultado['world_country']}'")
             
             return resultado
@@ -900,7 +905,7 @@ def llm_analysis(u_conf):
         # Identificar pendientes
         mask_pendiente = (
             (df["topic_llm"] == "") | (df["topic_llm"] == "nan") |
-            (df["posicion"] == "") | (df["posicion"] == "nan") |
+            (df["postura"] == "") | (df["postura"] == "nan") |
             (df["pertinencia"] == "") | (df["pertinencia"] == "nan")
         )
         

@@ -760,8 +760,8 @@ def procesar_pilares_directorio(u_conf, archivos=None):
         # 1. Filtrar descartados# Con el nuevo vllm_sentiment_topic_new.py el CSV ya no trae 'sentimiento'
         # (se sustituyó por 'posicion'); se mantiene el camino antiguo por si
         # se procesa un *_analizado.csv generado con el esquema previo.
-        if 'posicion' in df.columns:
-            df_filtrado = df[df['posicion'].isin([-1, 0, 1])].copy()
+        if 'postura' in df.columns:
+            df_filtrado = df[df['postura'].isin([-1, 0, 1])].copy()
             # df_filtrado = df[df['posicion'].astype(str).str.strip().str.lower() == 'relevante'].copy()
         elif 'sentimiento' in df.columns:
             df['sentimiento'] = pd.to_numeric(df['sentimiento'], errors='coerce')

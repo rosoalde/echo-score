@@ -624,9 +624,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 </h6>
                 <p class="text-muted mb-0 mt-1" style="font-size:.75rem;">
                     Para cada red social se muestra su <strong>ECHO Score</strong> y la distribución de las publicaciones según su repercusión:
-                    <br>• <strong>Mayor repercusión de posturas a favor / apoyo:</strong> ECHO Score superior al 60%
-                    <br>• <strong>Influencia neutra:</strong> ECHO Score entre el 40% y el 60%
-                    <br>• <strong>Mayor repercusión de posturas en contra / rechazo:</strong> ECHO Score inferior al 40%
+                    <ul class="text-muted mb-2 ps-4" style="font-size:.75rem;"> 
+                    <li><strong>Mayor repercusión de posturas a favor / apoyo:</strong> ECHO Score superior al 60%.</li>
+                    <li><strong>Influencia neutra:</strong> ECHO Score entre el 40% y el 60%.</li>
+                    <li><strong>Mayor repercusión de posturas en contra / rechazo:</strong> ECHO Score inferior al 40%.</li>
+                    </ul>
                 </p>
             </div>
             <div class="row g-3 mb-4" id="scoreopPlatCards"></div>`;
@@ -644,9 +646,9 @@ document.addEventListener("DOMContentLoaded", () => {
             <p class="text-muted mb-1" style="font-size:.75rem;">
                 Las publicaciones se clasifican según la repercusión de sus posturas:
             </p>
-            <ul class="text-muted mb-2 ps-4" style="font-size:.75rem;">
-                <li><strong>Repercusión a favor:</strong> ECHO Score superior al 60 %.</li>
-                <li><strong>Repercusión en contra:</strong> ECHO Score inferior al 40 %.</li>
+            <ul class="text-muted mb-2 ps-4" style="font-size:.75rem;"> 
+                <li><strong>Repercusión a favor:</strong> ECHO Score superior al 60%.</li>
+                <li><strong>Repercusión en contra:</strong> ECHO Score inferior al 40%.</li>
             </ul>
             <p class="text-muted mb-0" style="font-size:.75rem;">
                 Dentro de cada grupo, se ordenan primero por su <strong>ECHO Score</strong> y después por el alcance y la interacción generada.

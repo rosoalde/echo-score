@@ -60,11 +60,11 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     function scoreopCategoria(pct) {
-        if (pct > 80) return { label: "Repercusión muy positiva", color: SCOREOP_COLORS.muy_positivo, textColor: "#fff" };
-        if (pct >= 60) return { label: "Repercusión  positiva", color: SCOREOP_COLORS.positivo, textColor: "#fff" };
+        if (pct > 80) return { label: "Repercusión a favor muy alta", color: SCOREOP_COLORS.muy_positivo, textColor: "#fff" };
+        if (pct >= 60) return { label: "Repercusión a favor", color: SCOREOP_COLORS.positivo, textColor: "#fff" };
         if (pct >= 40) return { label: "Repercusión equilibrada / polarizada", color: SCOREOP_COLORS.neutro, textColor: "#333" };
-        if (pct >= 20) return { label: "Repercusión negativa", color: SCOREOP_COLORS.negativo, textColor: "#6b1e1e" };
-        return { label: "Repercusión muy negativa", color: SCOREOP_COLORS.muy_negativo, textColor: "#fff" };
+        if (pct >= 20) return { label: "Repercusión en contra", color: SCOREOP_COLORS.negativo, textColor: "#6b1e1e" };
+        return { label: "Repercusión en contra muy alta", color: SCOREOP_COLORS.muy_negativo, textColor: "#fff" };
     }
 
     function scoreopBadgeStyle(pct) {
@@ -571,14 +571,14 @@ document.addEventListener("DOMContentLoaded", () => {
         var htmlTrayectoria = `
         <div class="bg-light p-3 rounded-3 mb-3 border-start border-4 border-info shadow-sm">
             <h6 class="text-dark fw-bold small text-uppercase mb-1">
-                <i class="bi bi-activity me-2 text-info"></i>Dinámica de polaridad y balance neto del debate por plataforma
+                <i class="bi bi-activity me-2 text-info"></i>Dinámica de la postura y balance neto del debate por plataforma
             </h6>
             <p class="text-muted mb-2 mt-1" style="font-size:.75rem;">
                 Esta gráfica muestra el ECHO Score promedio de las publicaciones analizadas cada día.
             </p>
             <div class="d-flex flex-wrap gap-3 small" style="font-size:.72rem;">
-                <span><span class="d-inline-block rounded me-1" style="width:12px;height:12px;background:rgba(14,178,108,0.45);"></span><strong>Zona verde</strong>: días con un ECHO Score superior al 50 % (mayor repercusión de posturas positivas)</span>
-                <span><span class="d-inline-block rounded me-1" style="width:12px;height:12px;background:rgba(216,83,95,0.45);"></span><strong>Zona roja</strong>: días con un ECHO Score inferior al 50 % (mayor repercusión de posturas negativas)</span>
+                <span><span class="d-inline-block rounded me-1" style="width:12px;height:12px;background:rgba(14,178,108,0.45);"></span><strong>Zona verde</strong>: días con un ECHO Score superior al 50 % (mayor repercusión de posturas a favor)</span>
+                <span><span class="d-inline-block rounded me-1" style="width:12px;height:12px;background:rgba(216,83,95,0.45);"></span><strong>Zona roja</strong>: días con un ECHO Score inferior al 50 % (mayor repercusión de posturas en contra)</span>
                 // <span><span class="d-inline-block rounded me-1" style="width:12px;height:12px;background:#666;"></span><strong>Línea</strong>: promedio ECHO score del día</span>
                 <span><span class="d-inline-block rounded me-1" style="width:12px;height:12px;background:#7c3aed;"></span><strong>Balance neto</strong>: acumula las diferencias diarias respecto al 50 %. La línea discontinua indica esas diferencias a lo largo del tiempo para mostrar la tendencia general del debate.</span>
             </div>
@@ -624,9 +624,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 </h6>
                 <p class="text-muted mb-0 mt-1" style="font-size:.75rem;">
                     Para cada red social se muestra su <strong>ECHO Score</strong> y la distribución de las publicaciones según su repercusión:
-                    <br>• <strong>Mayor repercusión de posiciones positivas / apoyo:</strong> ECHO Score superior al 60%
+                    <br>• <strong>Mayor repercusión de posturas a favor / apoyo:</strong> ECHO Score superior al 60%
                     <br>• <strong>Influencia neutra:</strong> ECHO Score entre el 40% y el 60%
-                    <br>• <strong>Mayor repercusión de posiciones negativas / rechazo:</strong> ECHO Score inferior al 40%
+                    <br>• <strong>Mayor repercusión de posturas en contra / rechazo:</strong> ECHO Score inferior al 40%
                 </p>
             </div>
             <div class="row g-3 mb-4" id="scoreopPlatCards"></div>`;
@@ -639,14 +639,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 <i class="bi bi-list-stars me-2"></i>Publicaciones según ECHO score
             </h6>
             <p class="text-muted mb-2 mt-1" style="font-size:.75rem;">
-                Este apartado identifica la repercusión de los argumentos positivos o negativos en cada publicación.
+                Este apartado identifica la repercusión de las posturas a favor y en contra en cada publicación.
             </p>
             <p class="text-muted mb-1" style="font-size:.75rem;">
-                Las publicaciones se clasifican según la repercusión de sus argumentos:
+                Las publicaciones se clasifican según la repercusión de sus posturas:
             </p>
             <ul class="text-muted mb-2 ps-4" style="font-size:.75rem;">
-                <li><strong>Repercusión positiva:</strong> ECHO Score superior al 60 %.</li>
-                <li><strong>Repercusión negativa:</strong> ECHO Score inferior al 40 %.</li>
+                <li><strong>Repercusión a favor:</strong> ECHO Score superior al 60 %.</li>
+                <li><strong>Repercusión en contra:</strong> ECHO Score inferior al 40 %.</li>
             </ul>
             <p class="text-muted mb-0" style="font-size:.75rem;">
                 Dentro de cada grupo, se ordenan primero por su <strong>ECHO Score</strong> y después por el alcance y la interacción generada.
@@ -937,20 +937,20 @@ document.addEventListener("DOMContentLoaded", () => {
         el.innerHTML =
             '<span class="badge px-2 me-1 fw-bold" style="' + scoreopBadgeStyle(globalPct) + '">' + cat.label + '</span><br>' +
             '<div class="text-muted" style="font-size:.82rem; line-height:1.5;">' +
-            'La polaridad ponderada global es <strong>' + globalPct.toFixed(1) + '%</strong>' +
+            'La postura ponderada global es <strong>' + globalPct.toFixed(1) + '%</strong>' +
             (nRedes > 1 ? ' (promedio ponderado de ' + nRedes + ' plataformas)' : '') +
             '. ' + _textoInterpretativo(globalPct) +
             '</div>';
     }
 
     function _textoInterpretativo(pct) {
-        if (pct > 80) return "Existe una alta convergencia argumental favorable.";
-        if (pct > 60) return "La energía discursiva muestra una predominancia favorable; los argumentos positivos logran capitalizar la mayor parte de la interacción.";
-        if (pct > 50) return "Equilibrio con sesgo positivo: existe polarización, pero los argumentos favorables mantienen una ligera ventaja en tracción social.";
-        if (pct === 50) return "Estado de equilibrio absoluto: las fuerzas discursivas favorables y críticas se neutralizan o la conversación es puramente neutra.";
-        if (pct >= 40) return "Equilibrio con sesgo crítico: la energía de los argumentos negativos empieza a desplazar el centro de gravedad del debate.";
-        if (pct >= 20) return "La energía discursiva muestra una predominancia crítica; los argumentos de rechazo lideran la narrativa con alta tracción social.";
-        return "Existe una alta convergencia argumental crítica; el discurso está dominado por una negatividad estructural con máxima intensidad social.";
+        if (pct > 80) return "La orientación de posturas a favor presenta una repercusión social muy elevada dentro del conjunto analizado, debido a la combinación de postura, interacción y alcance.";
+        if (pct > 60) return "La orientación de posturas a favor tienen mayor peso en la conversación analizada, aunque también están presentes intervenciones con posturas neutrales o de rechazo.";
+        if (pct > 50) return "La orientacion de posturas a favor y en contra presentan un peso social similar, o bien predomina una orientación neutral que mantiene el resultado próximo al punto de equilibrio con una ligera ventaja de posturas a favor.";
+        if (pct === 50) return "Las posturas de apoyo y rechazo se neutralizan o la conversación es puramente neutra.";
+        if (pct >= 40) return "La orientacion de posturas a favor y en contra presentan un peso social similar, o bien predomina una orientación neutral que mantiene el resultado próximo al punto de equilibrio con una ligera ventaja de posturas en contra.";
+        if (pct >= 20) return "La orientación de posturas en contra tienen mayor peso en la conversación analizada, aunque también están presentes intervenciones con posturas neutrales o de apoyo.";
+        return "La orientación de posturas en contra presenta una repercusión social muy elevada dentro del conjunto analizado, debido a la combinación de postura, interacción y alcance.";
     }
 
     /* FUNCION COMENTADA: ahora se colorea el KPI global unicamente en _renderInterpretacionGlobal()

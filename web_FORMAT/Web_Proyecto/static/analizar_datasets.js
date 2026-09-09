@@ -531,6 +531,7 @@ document.addEventListener("DOMContentLoaded", () => {
             var el = document.getElementById(id);
             if (el) el.innerText = (val !== undefined && val !== null) ? val.toFixed(1) + "%" : "--";
         };
+        /* La pestaña ECHO SCORE ahora solo muestra el ECHO Global. Comentado para recuperar si hiciera falta.
         var pctMedia = stats.pct_media !== undefined ? stats.pct_media : stats.media;
         var pctMediana = stats.pct_mediana !== undefined ? stats.pct_mediana : stats.mediana;
         var pctMax = stats.pct_max !== undefined ? stats.pct_max : stats.max;
@@ -544,7 +545,7 @@ document.addEventListener("DOMContentLoaded", () => {
         _colorKpi("kpiScoreopMedia", pctMedia);
         _colorKpi("kpiScoreopMax", pctMax);
         _colorKpi("kpiScoreopMin", pctMin);
-
+        */
         // KPI posición global ponderada
         var globalPct = scoreop.scoreop_pct_global;
         var kpiGlobal = document.getElementById("kpiScoreopGlobal");
@@ -952,18 +953,23 @@ document.addEventListener("DOMContentLoaded", () => {
         return "Existe una alta convergencia argumental crítica; el discurso está dominado por una negatividad estructural con máxima intensidad social.";
     }
 
+    /* FUNCION COMENTADA: ahora se colorea el KPI global unicamente en _renderInterpretacionGlobal()
     function _colorKpi(id, pct) {
         var el = document.getElementById(id);
         if (!el || pct === undefined) return;
         el.style.color = scoreopCategoria(pct).color;
     }
+    */
 
     function renderScoreOPNoDisponible() {
         var contentEl = document.getElementById("scoreop-content");
         if (contentEl) {
             contentEl.innerHTML = '<div class="alert alert-info shadow-sm d-flex align-items-start gap-3 p-4 rounded-4"><i class="bi bi-info-circle-fill fs-3 text-info flex-shrink-0 mt-1"></i><div><h6 class="fw-bold mb-1">ScoreOP no disponible</h6><p class="mb-0 text-muted small">El archivo <code>scoreop_consolidado.csv</code> no ha sido encontrado.</p></div></div>';
         }
+        /*
         ["kpiScoreopMedia", "kpiScoreopMediana", "kpiScoreopMax", "kpiScoreopMin", "kpiScoreopGlobal"].forEach(function (id) {
+        */
+        ["kpiScoreopGlobal"].forEach(function (id) {
             var el = document.getElementById(id); if (el) el.innerText = "--";
         });
     }

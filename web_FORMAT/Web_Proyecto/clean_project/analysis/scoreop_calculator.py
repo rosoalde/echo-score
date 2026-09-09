@@ -180,7 +180,11 @@ class ScoreOPCalculator:
         # df['sentimiento_num'] = pd.to_numeric(df['sentimiento'], errors='coerce')
         # df_relevante = df[df['sentimiento_num'].isin([1, 0, -1])].copy()
         df['postura_num'] = pd.to_numeric(df['postura'], errors='coerce')
-        df_relevante = df[df['postura_num'].isin([1,0,-1])]
+        if 'pertinencia' in df.columns:
+            es_relevante = df['pertinencia'].astype(str).str.strip().str.lower() == 'relevante'
+            df_relevante = df[df['postura_num'].isin([1, 0, -1]) & es_relevante]
+        else:
+            df_relevante = df[df['postura_num'].isin([1,0,-1])]
 
         # print(f"  📊 Contenido filtrado (sentimiento != 2):")
         print(f"  📊 Contenido filtrado (postura != 2):")  

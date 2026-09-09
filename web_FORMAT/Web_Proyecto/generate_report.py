@@ -194,11 +194,11 @@ def _plat_color(name: str, idx: int = 0) -> str:
 
 
 def _scoreop_cat(pct: float) -> tuple[str, str]:
-    if pct > 80:  return "Convergencia positiva alta",        "#0a7c4a"
-    if pct >= 60: return "Predominancia positiva",             "#0eb26c"
-    if pct >= 40: return "Equilibrio / Polarización",   "#adb5bd"
-    if pct >= 20: return "Predominancia negativa",          "#f28c8c"
-    return             "Convergencia negativa alta",         "#d8535f"
+    if pct > 80:  return "Repercusión positiva muy alta",        "#0a7c4a"
+    if pct >= 60: return "Repercusión positiva",             "#0eb26c"
+    if pct >= 40: return "Repercusión equilibrada / polarizada",   "#adb5bd"
+    if pct >= 20: return "Repercusión negativa",          "#f28c8c"
+    return             "Repercusión negativa muy alta",         "#d8535f"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2013,28 +2013,29 @@ def build_analysis_pdf(
          Paragraph(f"{_fmt_int(total_posts)}",       ST["table_cell"]),
         #  Paragraph("Publicaciones de Reddit o Bluesky, y vídeos de YouTube originales con análisis de polaridad completado. "
         #            "Cada publicación es tratada como la 'voz del autor'.", ST["table_cell"])],
-         Paragraph(f"{sources_desc_short.capitalize()} originales con análisis de polaridad completado. "
-         "Cada publicación es tratada como la 'voz del autor'.", ST["table_cell"])],
+         Paragraph(f"{sources_desc_short.capitalize()} originales. "
+         "Cada publicación representa la postura expresada por su autor y se clasifica según su orientación: "
+        "negativa (-1), neutral o equilibrada (0) o positiva (1). ",
+        ST["table_cell"])],
         [Paragraph("Comentarios totales",    ST["table_cell"]),
          Paragraph(f"{_fmt_int(total_com)}",         ST["table_cell"]),
-         Paragraph("Respuestas de la comunidad incluidas en el cálculo de los indicadores de polaridad ponderada por esfuerzo social, influencia y alcance "
+         Paragraph("Respuestas de la comunidad con postura asignada, incorporadas al cálculo de los indicadores de cada publicación. "
                     #"(ponderan el 60 % "
-                   "de la puntuación de cada publicación. No se contabilizan como publicaciones independientes.",
+                   "No se contabilizan como publicaciones independientes.",
                    ST["table_cell"])],
 
         [Paragraph("Temas identificados",    ST["table_cell"]),
          Paragraph(f"{_fmt_int(n_topics_post)}",       ST["table_cell"]),
-         Paragraph("Principales argumentos y enfoques detectados automáticamente en las publicaciones analizadas. "
-                   "Cada contenido se asocia a un tópico representativo de la polaridad expresada." 
-                   "El sistema prioriza la reutilización de categorías existentes para reducir duplicidades y mantener coherencia analítica.",
+         Paragraph("Principales temas o aspectos identificados automáticamente en las publicaciones analizadas. "
+                   "Cada publicación se asocia a un tópico que representa el asunto concreto del que trata." 
+                   "El sistema prioriza la reutilización de categorías existentes para reducir duplicidades y mantener la coherencia del análisis.",
                    ST["table_cell"])],
 
         [Paragraph("ECHO global",     ST["table_cell"]),
          Paragraph(f"{s_global:.2f}%",       ST["table_cell"]),
-         Paragraph("Síntesis agregada que cuantifica la hegemonía de la polaridad en el debate global. Representa el centro de gravedad de la " \
-         "opinión pública, integrando la carga emocional de los argumentos ponderada por su tracción social efectiva (esfuerzo y alcance). " \
-         "El indicador final se consolida mediante la masa discursiva de cada red, priorizando los ecosistemas con mayor densidad de participación " \
-         "real para reflejar la posición neta que domina la agenda pública.",
+         Paragraph("Indicador agregado que resume la orientación de la conversación a partir de las posturas expresadas en las publicaciones y sus comentarios. " \
+         "Integra las posturas negativa (-1), neutral o equilibrada (0) y positiva (1), ponderando su contribución según la tracción social, el esfuerzo y el alcance. " \
+         "El resultado se consolida considerando la masa discursiva de cada red, de modo que la puntuación refleja la orientación social que adquiere mayor peso en el conjunto analizado.", 
         #  "Índice global de posicionamiento calculado mediante agregación "
         #             "ponderada del índice de posicionamiento por plataforma según el volumen total de "
         #             "interacciones analizadas (publicaciones + comentarios). "
@@ -2054,21 +2055,21 @@ def build_analysis_pdf(
                     "publicaciones y comentarios con clasificación válida. "
                     "Después, el resultado global se obtiene como una media ponderada, donde cada red "
                     "contribuye en función del volumen de contenido analizado en esa red. "
-                    "El indicador refleja el nivel general de aceptación de la opinión pública en el periodo analizado.",
+                    "El indicador refleja el nivel general de aceptación observado en el conjunto de la conversación en el periodo analizado.",
                 ST["table_cell"]
             ),
         ])
     kpi_data.append([
-        Paragraph("Convergencia de Polaridad Favorable Máxima", ST["table_cell"]),
+        Paragraph("Mayor repercusión positiva", ST["table_cell"]),
          Paragraph(f"{s_max:.2f}%" if s_max else "—", ST["table_cell"]),
-         Paragraph("Publicación con ECHO score más alto.",
+         Paragraph("Publicación con el ECHO score más alto, que representa la mayor orientación positiva ponderada por su tracción social.",
                    ST["table_cell"]
         ),
     ])
 
-    kpi_data.append([Paragraph("Convergencia de Polaridad Crítica Máxima ", ST["table_cell"]),
+    kpi_data.append([Paragraph("Mayor repercusión negativa", ST["table_cell"]),
          Paragraph(f"{s_min:.2f}%" if s_min is not None else "—", ST["table_cell"]),
-         Paragraph("Publicación con ECHO score más bajo.",
+         Paragraph("Publicación con el ECHO score más bajo, que representa la mayor orientación negativa ponderada por su tracción social.",
                    ST["table_cell"]
         ),
     ])
@@ -2195,10 +2196,10 @@ def build_analysis_pdf(
     story.append(Paragraph("3.1 Metodología: modelo ECHO score", ST["subsection"]))
 
     story.append(Paragraph(
-        "El indicador de polaridad ponderada por esfuerzo social, y alcance,  denominado <b>ECHO score</b>, cuantifica la <b>tracción social de la carga argumental</b> "
-        "en la conversación digital. A diferencia de los modelos basados en frecuencia simple de menciones positivas o negativas, "
-        "este modelo evalúa el peso específico de cada intervención mediante la integración de la intensidad de interacción (esfuerzo), la audiencia potencial (alcance) " \
-        "y la validación colectiva de la comunidad (auditoría discursiva).", 
+        "El indicador de postura ponderada por esfuerzo social, y alcance,  denominado <b>ECHO score</b>, resume la orientación y repercusión social de las intervenciones en la conversación digital. "
+        "A diferencia de los modelos basados en la frecuencia de menciones positivas o negativas, "
+        "este indicador pondera la contribución de cada publicación y de los comentarios asociados según la postura expresada y su tracción social, integrando factores relacionados con la interacción, el esfuerzo social y el alcance. ", 
+        "De este modo, el ECHO score permite identificar qué orientación adquiere mayor peso dentro del conjunto de la conversación analizada.",
         # "incorporando factores asociados al nivel de interacción generado, al alcance potencial del emisor y a la respuesta de la comunidad " \
         # "frente al contenido publicado.",
         ST["body"]))
@@ -2209,14 +2210,14 @@ def build_analysis_pdf(
          Paragraph("<b>Qué es y cómo se calcula</b>", ST["table_header"]),
          Paragraph("<b>Por qué importa</b>", ST["table_header"])],
 
-        [Paragraph("Polaridad del autor y de los comentarios", ST["table_cell"]),
-         Paragraph("El análisis automatizado asigna a cada post y comentario un valor de polaridad respecto al tema de estudio introducido: "
+        [Paragraph("Postura del autor y de los comentarios", ST["table_cell"]),
+         Paragraph("El análisis automatizado asigna a cada post y comentario un valor de postura respecto al tema de estudio introducido: "
              "+1 = a favor / apoyo, 0 = neutro / informativo / equilibrado, -1 = en contra / crítico. "
-             "Los contenidos clasificados como 2 (no relacionados con el tema) "
+             "Los contenidos clasificados como 2 (sin postura inferida) "
              "se excluyen completamente del cálculo",# — no aportan ni numerador ni denominador.",
              ST["table_cell"]),
          Paragraph(
-             "Garantiza que solo el contenido genuinamente relacionado con el tema "
+             "Garantiza que solo el contenido con postura implícita o explícita respecto al tema "
              "influya en la métrica, eliminando ruido y spam.",
              ST["table_cell"])],
 
@@ -2286,21 +2287,23 @@ def build_analysis_pdf(
         #     ],
         [Paragraph("Regla 40/60:\nautor vs. comunidad", ST["table_cell"]),
          Paragraph(
-             "El indicador final (<b>ECHO score de la publicación</b>) ntegra la polaridad de la carga argumental del autor " \
-             "con la respuesta emocional agregada de la comunidad. Este enfoque trasciende la mera monitorización de la emisión " \
-             "para evaluar la validación social del discurso. Mediante esta arquitectura, el sistema identifica dinámicas de convergencia "
-             "(cuando la comunidad amplifica la polaridad original) o de disonancia "
-             "(cuando la respuesta colectiva neutraliza o invierte el sentido del mensaje inicial).",
+             "El indicador final (<b>ECHO score de la publicación</b>) integra la postura del autor " \
+             "con las posturas de las respuestas de la comunidad. De este modo, el análisis no se " \
+             "limita a la postura expresada en la publicación original, sino que incorpora también la respuesta generada en torno a ella. "
+             "La contribución de estas intervenciones se pondera según su interacción, esfuerzo social e impacto, permitiendo reflejar el peso "
+             "que adquieren las distintas posturas dentro de la conversación asociada a cada publicación.",
             #  "El indicador de posición ponderado por esfuerzo social y alcance de cada hilo de publicación se construye combinando:\n"
             #  "  40% = contribución de la publicación original\n"
             #  "  60% = contribución agregada de sus comentarios\n"
             #  "Esto implica que si el autor adopta una posición favorable (+1), pero la comunidad expresa una respuesta mayoritariamente contradictoria o en dirección opuesta, el indicador resultante puede descender por debajo del 50%, indicando una inversión de la narrativa predominante respecto al contenido original.",
              ST["table_cell"]),
          Paragraph(
-             "Captura fenómenos dcomo el 'ratio' (donde una tracción crítica masiva invalida la narrativa del autor) "
-             "o el de 'consenso por refuerzo' (cuando los comentarios amplifican la posición "
-             "de la publicación original), garantizando que una publicación viral con argumentos críticos obtenga una " \
-             "huella de opinión radicalmente distinta a una publicación con el mismo contenido pero sin interacción disonante.",
+             "Captura cómo la interacción generada en torno a una publicación modifica su repercusión social. "
+             "Por ejemplo, una publicación con una tracción crítica elevada puede obtener un resultado significativamente "
+             "diferente al de otra con el mismo contenido pero con una interacción limitada o con una orientación distinta en sus respuestas. "
+             "Del mismo modo, cuando los comentarios asociados presentan una postura similar a la de la publicación original, su contribución puede "
+             "reforzar el peso de dicha orientación en el resultado final. Así, el indicador distingue entre publicaciones con un contenido similar "
+             "pero con diferentes niveles y características de interacción social.",
              ST["table_cell"])],
     ]
     dim_tbl = Table(dim_data, colWidths=[CW*0.17, CW*0.44, CW*0.37])
@@ -2411,24 +2414,24 @@ def build_analysis_pdf(
      Paragraph("<b>Significado sociométrico</b>", ST["table_header"])],
     
     [Paragraph("&gt; 80%", ST["table_cell_c"]),
-     Paragraph("Convergencia Favorable alta", ST["table_cell"]),
-     Paragraph("<b>Consenso hegemónico:</b> la práctica totalidad de la energía social (alcance + interacción) valida los argumentos de apoyo. Los <b>Picos de ECHO score</b> en este rango indican una sintonía absoluta entre emisor y comunidad.", ST["table_cell"])],
+     Paragraph("Repercusión positiva muy alta", ST["table_cell"]),
+     Paragraph("La orientación positiva presenta una repercusión social muy elevada dentro del conjunto analizado, debido a la combinación de postura, interacción y alcance.", ST["table_cell"])],
     
     [Paragraph("60% – 80%", ST["table_cell_c"]),
-     Paragraph("Predominancia favorable", ST["table_cell"]),
-     Paragraph("<b>Validación mayoritaria:</b> los argumentos favorables dominan la agenda y capitalizan la interacción, aunque coexisten con voces críticas que mantienen capacidad de respuesta.", ST["table_cell"])],
+     Paragraph("Repercusión positiva", ST["table_cell"]),
+     Paragraph("La orientación positiva tiene mayor peso en la conversación analizada, aunque también están presentes intervenciones con orientación neutral o negativa.", ST["table_cell"])],
     
     [Paragraph("40% – 60%", ST["table_cell_c"]),
-     Paragraph("Equilibrio / Polarización", ST["table_cell"]),
-     Paragraph("<b>Punto de neutralización:</b> las fuerzas de apoyo y rechazo tienen magnitudes similares y se cancelan recíprocamente, o bien el discurso es puramente informativo sin tracción emocional.", ST["table_cell"])],
+     Paragraph("Repercusión equilibrada / polarizada", ST["table_cell"]),
+     Paragraph("Las orientaciones positiva y negativa presentan un peso social similar, o bien predomina una orientación neutral que mantiene el resultado próximo al punto de equilibrio.", ST["table_cell"])],
     
     [Paragraph("20% – 40%", ST["table_cell_c"]),
-     Paragraph("Predominancia crítica", ST["table_cell"]),
-     Paragraph("<b>Tracción de rechazo:</b> la narrativa crítica lidera el debate. La comunidad contradice activamente los argumentos favorables, desplazando el centro de gravedad hacia el descontento.", ST["table_cell"])],
+     Paragraph("Repercusión negativa", ST["table_cell"]),
+     Paragraph("La orientación negativa adquiere mayor peso en la conversación analizada, teniendo en cuenta la interacción y el alcance de las intervenciones.", ST["table_cell"])],
     
     [Paragraph("&lt; 20%", ST["table_cell_c"]),
-     Paragraph("Convergencia crítica alta", ST["table_cell"]),
-     Paragraph("<b>Rechazo estructural:</b> clima de hostilidad unívoca. Los <b>Picos de ECHO score</b> en este rango señalan 'ratios' masivos donde la respuesta social invalida por completo la narrativa del autor.", ST["table_cell"])],
+     Paragraph("Repercusión negativa muy alta", ST["table_cell"]),
+     Paragraph("La orientación negativa presenta una repercusión social muy elevada dentro del conjunto analizado, debido a la combinación de postura, interacción y alcance.", ST["table_cell"])],
 ]
     interp_tbl = Table(interp_data, colWidths=[CW*0.18, CW*0.20, CW*0.62])
     interp_tbl_style = TableStyle(_TBLSTYLE_BASE[:])
@@ -2490,9 +2493,9 @@ def build_analysis_pdf(
 
         pct_por_red = scoreop.get("scoreop_pct_por_red", {})
         if pct_por_red:
-            story.append(Paragraph("3.3 Polaridad ponderada por esfuerzo social, y alcance por plataforma", ST["subsection"]))
+            story.append(Paragraph("3.3 Postura ponderada por esfuerzo social, y alcance por plataforma", ST["subsection"]))
             story.append(Paragraph(
-                "La polaridad de cada red (Indicador ECHO score de la red) se calcula como la media ponderada del impacto de todos sus posts, "
+                "La postura de cada red (Indicador ECHO score de la red) se calcula como la media ponderada del impacto de todos sus posts, "
                 "manteniendo coherencia metodológica entre plataformas y volúmenes de interacción.",
                 #"usando el denominador acumulado (sup) para mantener coherencia con el modelo.",
                 ST["body"]
@@ -2530,8 +2533,8 @@ def build_analysis_pdf(
             story.append(plat_tbl)
             story.append(Spacer(1, 0.15*cm))
             story.append(Paragraph(
-                "Motores (+): publicaciones originales con ECHO score > 60% (tracción favorable). "
-                "Neutros: indicador 40-60%. Motores (-): indicador < 40% (tracción de rechazo).",
+                "Motores (+): publicaciones originales con ECHO score > 60%, cuya orientación positiva presenta una mayor repercusión social. "
+                "Neutros: publicaciones con ECHO score entre 40 % y 60 %, sin una orientación claramente predominante. Motores (-): publicaciones originales con ECHO score < 40 %, cuya orientación negativa presenta una mayor repercusión social.",
                 ST["note"]
             ))
             story.append(Spacer(1, 0.3*cm))
@@ -2539,7 +2542,7 @@ def build_analysis_pdf(
         charts = _chart_scoreop_trend_by_red(scoreop, platform_order)
         if charts:
             story.append(Paragraph(
-                "3.5 Trayectoria temporal de la polaridad por plataforma",
+                "3.5 Trayectoria temporal de la postura por plataforma",
                 ST["subsection"]
             ))
             # story.append(Paragraph(
@@ -2554,27 +2557,27 @@ def build_analysis_pdf(
             #     ST["body"]
             # ))
             story.append(Paragraph(
-                "Cada gráfico monitoriza la evolución cronológica de la polaridad mediante el promedio diario de los valores <b>ECHO score</b>. "
-                "La línea continua representa la <b>Polaridad Media Diaria</b>, identificando la respuesta inmediata de la opinión pública ante hitos o eventos específicos. "
+                "Cada gráfico monitoriza la evolución cronológica de la postura mediante el promedio diario de los valores <b>ECHO score</b>. "
+                "La línea continua representa la <b>Postura Media Diaria</b>, identificando la respuesta inmediata de la opinión pública ante hitos o eventos específicos. "
                 "Por otro lado, la línea discontinua representa el <b>Balance Neto Acumulado</b> (Inercia del Clima Social), definido como el sumatorio progresivo de las desviaciones diarias respecto al punto de equilibrio (50%). "
-                "Este indicador no constituye un promedio, sino una métrica de memoria del sistema que revela la acumulación de capital social o la cronificación del malestar a lo largo de todo el periodo analizado: <br/><br/>"
-                "• <b>Valores positivos:</b> indican una consolidación sostenida de la validación de los argumentos en el tiempo.<br/>"
-                "• <b>Valores negativos:</b> revelan una acumulación persistente de rechazo estructural o malestar crónico.<br/>"
-                "• <b>Valores cercanos a 0:</b> señalan un estado de equilibrio estable o una neutralización recíproca de fuerzas en el largo plazo.",
+                "Este indicador no representa un promedio, sino que permite observar cómo se acumula la orientación positiva o negativa a lo largo del periodo analizado: <br/><br/>"
+                "• <b>Valores positivos:</b> indican una acumulación de valores diarios por encima del punto de equilibrio, reflejando una orientación positiva sostenida en el periodo.<br/>"
+                "• <b>Valores negativos:</b> indican una acumulación de valores diarios por debajo del punto de equilibrio, reflejando una orientación negativa sostenida en el periodo.<br/>"
+                "• <b>Valores cercanos a 0:</b> indican que las desviaciones positivas y negativas se compensan a lo largo del periodo, sin una orientación acumulada claramente predominante.",
                 ST["body"]
             ))
             for red, img in charts.items():
                 story.append(Spacer(1, 0.25*cm))
                 story.append(_img_from_bytes(img, CW))
                 story.append(Paragraph(
-                    f"Figura {FIG_NUM}. Dinámica de polaridad y balance neto del debate · {red.capitalize()}. "
-                    "La línea continua muestra el ECHO score promedio diario; la línea discontinua muestra el balance neto del sesgo.",
+                    f"Figura {FIG_NUM}. Evolución temporal de la postura y balance neto acumulado · {red.capitalize()}. "
+                    "La línea continua muestra el ECHO score promedio diario; la línea discontinua muestra el balance neto acumulado respecto al punto de equilibrio (50 %). ",
                     ST["caption"]
                 ))
                 FIG_NUM += 1
             story.append(Spacer(1, 0.3*cm))
 
-        story.append(Paragraph("3.6 Tabla de distribución global", ST["subsection"]))
+        story.append(Paragraph("3.6 Distribución global del ECHO score", ST["subsection"]))
         dist_data = [
             [Paragraph("<b>Categoría</b>",            ST["table_header"]),
              Paragraph("<b>Rango indicador </b>",  ST["table_header"]),
@@ -2582,11 +2585,11 @@ def build_analysis_pdf(
              Paragraph("<b>Qué indica</b>",            ST["table_header"])],
         ]
         cat_info = [
-            ("muy_positivo",  "> 80%",    "#e8f5e9", "Amplio consenso positivo con alta interacción."),
-            ("positivo",      "60 – 80%", "#f1f8e9", "Posición favorable predominante."),
-            ("neutro",        "40 – 60%", "#f5f5f5", "Debate equilibrado o contenido con posición neutra."),
-            ("negativo",      "20 – 40%", "#fff3e0", "Posición de rechazo predominante."),
-            ("muy_negativo",  "< 20%",    "#ffebee", "Fuerte rechazo activo o controversia marcada."),
+            ("Repercusión positiva muy alta",  "> 80%",    "#e8f5e9", "Orientación positiva con una repercusión social muy elevada."),
+            ("Repercusión positiva alta",     "60 – 80%", "#f1f8e9", "Predominio de la orientación positiva en la conversación analizada."),
+            ("Repercusión neutra",            "40 – 60%", "#f5f5f5", "Sin una orientación claramente predominante; las contribuciones positivas y negativas presentan un peso similar."),
+            ("Repercusión negativa alta",     "20 – 40%", "#fff3e0", "Predominio de la orientación negativa en la conversación analizada."),
+            ("Repercusión negativa muy alta", "< 20%",    "#ffebee", "Orientación negativa con una repercusión social muy elevada."),
         ]
         total_dist = sum(s_dist.get(c[0], 0) for c in cat_info) or 1
         for cat, rango, bg, desc in cat_info:
@@ -2608,10 +2611,9 @@ def build_analysis_pdf(
 
         story.append(Paragraph("3.7 Publicaciones representativas", ST["subsection"]))
         story.append(Paragraph(
-            "Se muestran hasta 5 publicaciones con mayor tracción positiva (<b>motores positivos</b>) "
-            "y hasta 5 con mayor tracción negativa (<b>motores negativos</b>). "
-            "El ECHO score de cada publicación indica qué porcentaje del máximo potencial positivo "
-            "obtuvo, considerando su impacto individual y la respuesta de sus comentarios.",
+            "Se muestran hasta 5 publicaciones con mayor repercusión positiva (<b>motores positivos</b>) "
+            "y hasta 5 con mayor repercusión negativa (<b>motores negativos</b>). "
+            "El ECHO score de cada publicación resume la orientación de su postura y la de los comentarios asociados, ponderando su contribución según la interacción, el esfuerzo social y el alcance.",
             ST["body"]
         ))
         story.append(Spacer(1, 0.15*cm))
@@ -2624,7 +2626,7 @@ def build_analysis_pdf(
                 Paragraph("<b>Plataforma</b>",         ST["table_header"]),
                 Paragraph("<b>Fecha</b>",              ST["table_header"]),
                 Paragraph("<b>ECHO pct</b>",      ST["table_header"]),
-                Paragraph("<b>Polaridad autor</b>",     ST["table_header"]),
+                Paragraph("<b>Postura del autor</b>",     ST["table_header"]),
                 Paragraph("<b>Comentarios</b>",        ST["table_header"]),
                 Paragraph("<b>Extracto del contenido</b>", ST["table_header"]),
             ]]
@@ -2656,9 +2658,9 @@ def build_analysis_pdf(
             story.append(tbl)
             story.append(Spacer(1, 0.25*cm))
 
-        _posts_table(s_top, "Motores de apoyo (Indicador > 60%)",
+        _posts_table(s_top, "Motores de repercusión positiva (Indicador > 60%)",
                      colors.HexColor("#1b5e20"), "#0a7c4a")
-        _posts_table(s_bot, "Motores de rechazo (Indicador < 40%)",
+        _posts_table(s_bot, "Motores de repercusión negativa (Indicador < 40%)",
                      colors.HexColor("#b71c1c"), "#d8535f")
 
     else:
@@ -3312,7 +3314,7 @@ def build_analysis_pdf(
 
         story.append(PageBreak())
         story.append(Paragraph(
-            "6. Motores de apoyo y rechazo por pilar y plataforma",
+            "6. Motores de repercusión positiva y negativa por pilar y plataforma",
             ST["section_title"]
         ))
         story.append(ColorBar(CW, height=2, color=C_ACCENT))
@@ -3321,10 +3323,10 @@ def build_analysis_pdf(
         story.append(Paragraph(
             "Esta sección identifica los contenidos que ejercen mayor tracción "
             "sobre cada dimensión de aceptación social analizada. "
-            "Se consideran <b>motores de apoyo</b> aquellos hilos de conversación (publicación original y comentarios asociados) "
+            "Se consideran <b>motores de repercusión positiva</b> aquellos hilos de conversación (publicación original y comentarios asociados) "
             "cuya contribución agregada al indicador del pilar es favorable, "
             "es decir, aquellos en los que tanto el posicionamiento inicial como la respuesta de la comunidad tienden a reforzar " \
-            "la aceptación de la medida o política pública. Por el contrario, los <b>motores de rechazo</b> corresponden a hilos cuya " \
+            "la aceptación de la medida o política pública. Por el contrario, los <b>motores de repercusión negativa</b> corresponden a hilos cuya " \
             "contribución agregada desplaza el indicador en sentido desfavorable, reflejando dinámicas de oposición o cuestionamiento dentro de la conversación digital.",
             # "del autor y la respuesta de la comunidad empujan el pilar en sentido favorable. "
             # "Un <b>motor de rechazo</b> es el caso contrario: la suma ponderada 40/60 resulta "
@@ -3475,7 +3477,7 @@ def build_analysis_pdf(
 
                 if apoyo:
                     story.append(Paragraph(
-                        f"Motores de apoyo — {len(apoyo)} publicaciones con mayor tracción positiva",
+                        f"Motores de repercusión positiva — {len(apoyo)} publicaciones con mayor repercusión positiva",
                         ParagraphStyle("_ms_apoyo", fontName="Helvetica-Bold", fontSize=8,
                                        textColor=colors.HexColor("#1b5e20"),
                                        spaceBefore=3, spaceAfter=2, leading=10)
@@ -3487,7 +3489,7 @@ def build_analysis_pdf(
 
                 if rechazo:
                     story.append(Paragraph(
-                        f"Motores de rechazo — {len(rechazo)} publicaciones con mayor tracción negativa",
+                        f"Motores de repercusión negativa — {len(rechazo)} publicaciones con mayor repercusión negativa",
                         ParagraphStyle("_ms_rechazo", fontName="Helvetica-Bold", fontSize=8,
                                        textColor=colors.HexColor("#b71c1c"),
                                        spaceBefore=3, spaceAfter=2, leading=10)
@@ -3505,7 +3507,7 @@ def build_analysis_pdf(
 
         story.append(Spacer(1, 0.3 * cm))
         story.append(Paragraph(
-            "Nota: se muestran hasta 5 motores de apoyo y 5 de rechazo por pilar y plataforma. "
+            "Nota: se muestran hasta 5 motores de repercusión positiva y 5 de repercusión negativa por pilar y plataforma. "
             "Un mismo hilo puede ser motor positivo en un pilar y negativo en otro "
             "si la comunidad responde de forma diferente a cada dimensión de aceptación.",
             ST["note"]
@@ -3579,17 +3581,16 @@ def build_analysis_pdf(
 
 def _interp_scoreop(pct: float) -> str:
     if pct > 80:
-        return "Existe un amplio consenso positivo hacia la medida o el tema analizado."
+        return "Existe una repercusión positiva muy alta en la conversación analizada."
     if pct > 60:
-        return "Predomina el apoyo, aunque existe debate visible. La tracción positiva supera claramente a la negativa."
+        return "Predomina la orientación positiva, con una repercusión social claramente superior a la negativa."
     if pct > 40:
-        return ("Las posiciones favorables y desfavorables se compensan o coexisten de forma equilibrada, "
-                "indicando un entorno de polarización o neutralidad estructural.")
+        return ("Las orientaciones positiva y negativa presentan una repercusión similar, sin una dominancia clara en la conversación analizada.")
     if pct == 40 or pct == 50 or pct == 60:
-        return "Zona de transición: equilibrio entre apoyo y rechazo con baja dominancia clara."
+        return "La repercusión negativa y positiva se encuentran en un punto de equilibrio o polarización."
     if pct > 20:
-        return "Predomina el rechazo o la crítica hacia la medida o el tema analizado."
-    return "Existe un fuerte rechazo activo en la conversación analizada."
+        return "Predomina la orientación negativa, con una repercusión social superior a la positiva."
+    return "Existe una repercusión negativa muy alta en la conversación analizada."
 
 # ────────────────────────────────────────────────────────────────────────────
 # OTRAS FUNCIONES AUXILIARES

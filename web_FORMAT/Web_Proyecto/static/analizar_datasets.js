@@ -840,22 +840,9 @@ document.addEventListener("DOMContentLoaded", () => {
                         var d = distPorPlat[p] || {};
                         var total = d.total || 0;
 
-                        var nPos = (d.muy_positivo || 0) + (d.positivo || 0);
-                        var nNeu = d.neutro || 0;
-                        var nNeg = (d.negativo || 0) + (d.muy_negativo || 0);
-
-                        if (total === 0 && todosLosPostsPct.length > 0) {
-                            var postsDePlat = todosLosPostsPct.filter(function (pp) {
-                                return (pp.plataforma || "").toLowerCase() === p.toLowerCase();
-                            });
-                            total = postsDePlat.length;
-                            postsDePlat.forEach(function (pp) {
-                                var pct = pp.ScoreOP_pct != null ? pp.ScoreOP_pct : 50;
-                                if (pct > 60) nPos++;
-                                else if (pct >= 40) nNeu++;
-                                else nNeg++;
-                            });
-                        }
+                        var nPos = d.distribucion_positiva || 0;
+                        var nNeu = d.distribucion_equilibrio || 0;
+                        var nNeg = d.distribucion_negativa || 0;
 
                         var totalDist = nPos + nNeu + nNeg || 1;
                         var pPosBar = ((nPos / totalDist) * 100).toFixed(0);
@@ -878,8 +865,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
                                 <div class="mt-3 pt-2 border-top">
                                     <div class="d-flex justify-content-between extra-small mb-1" style="font-size:.65rem;">
-                                        <span class="text-success fw-bold">Motores positivos (&gt;60%): ${nPos}</span>
-                                        <span class="text-danger fw-bold">Motores negativos (&lt;40%): ${nNeg}</span>
+                                        <span class="text-success fw-bold">Motores positivos (&gt;60%): ${nPos} / ${total}</span>
+                                        <span class="text-danger fw-bold">Motores negativos (&lt;40%): ${nNeg} / ${total}</span>
                                     </div>
                                     <div class="progress rounded-pill" style="height:8px; background:#f0f0f0;">
                                         <div class="progress-bar bg-success" style="width:${pPosBar}%"></div>
@@ -887,9 +874,9 @@ document.addEventListener("DOMContentLoaded", () => {
                                         <div class="progress-bar bg-danger" style="width:${pNegBar}%"></div>
                                     </div>
                                     <div class="d-flex justify-content-between extra-small mt-1" style="font-size:.6rem;color:#888;">
-                                        <span>▲ ${pPosBar}% Masa positiva</span>
-                                        <span>● ${pNeuBar}% Masa en equilibrio</span>
-                                        <span>▼ ${pNegBar}% Masa negativa</span>
+                                        <span>▲ ${pPosBar}% positivas</span>
+                                        <span>● ${pNeuBar}% en equilibrio</span>
+                                        <span>▼ ${pNegBar}% negativas</span>
                                     </div>
                                 </div>
                             </div>
@@ -989,8 +976,9 @@ document.addEventListener("DOMContentLoaded", () => {
         container.innerHTML = posts.map(function (post) {
             var pct = post.ScoreOP_pct != null ? post.ScoreOP_pct : null;
             var content = post.contenido_post || "Sin contenido";
-            var stance = post.stance_post || "--";
+            var stance = (post.stance_post !== undefined && post.stance_post !== null) ? post.stance_post : "--";
             var topic = post.topic || "";
+            var sentimientoTopic = post.sentimiento_topic || "";
             var nComent = post.num_comentarios != null ? post.num_comentarios : 0;
             var platColor = getPlatformColor(post.plataforma || "");
 
@@ -1007,31 +995,37 @@ document.addEventListener("DOMContentLoaded", () => {
                 '<div class="d-flex justify-content-between align-items-start mb-2">' +
                 '<div class="d-flex align-items-center gap-2 flex-wrap">' +
                 '<span class="badge rounded-pill" style="background:' + platColor + ';color:#fff;font-size:0.65rem;">' + (post.plataforma || "--") + '</span>' +
-                (topic ? '<small class="text-muted fw-bold text-uppercase" style="font-size:0.65rem;">' + topic + '</small>' : "") +
                 '</div>' +
                 '<div class="d-flex align-items-center gap-1">' +
                 '<span class="badge rounded-pill px-2 fw-bold" style="' + badgeStyle + ';font-size:.65rem;">' + cat.label + '</span>' +
                 (supFmt != null
-                    ? '<span class="badge rounded-pill px-2 fw-normal" style="background:rgba(108,117,125,0.12);color:var(--bs-secondary);font-size:.6rem;" title="Energía de Agenda: Mide la capacidad de tracción del hilo (alcance + interacción) que soporta la polaridad del tópico."><i class="bi bi-megaphone me-1"></i>Agenda ' + supFmt + '</span>'
+                    ? '<span class="badge rounded-pill px-2 fw-normal" style="background:rgba(108,117,125,0.12);color:var(--bs-secondary);font-size:.6rem;" title="La Agenda indica la presencia o relevancia de este tema dentro de la conversación analizada."><i class="bi bi-megaphone me-1"></i>Agenda ' + supFmt + '</span>'
                     : '') +
                 '</div>' +
                 '</div>' +
+                (topic || sentimientoTopic
+                    ? '<div class="mb-2 d-flex flex-column">' +
+                    (topic ? '<small class="text-muted fw-bold" style="font-size:.65rem;">Aspecto: ' + topic + '</small>' : '') +
+                    (sentimientoTopic ? '<small class="text-muted fw-bold" style="font-size:.65rem;">Valoración: ' + sentimientoTopic + '</small>' : '') +
+                    '</div>'
+                    : '') +
                 '<div style="max-height:100px;overflow-y:auto;padding-right:4px;" class="mb-2">' +
                 '<p class="mb-0 small text-dark" style="line-height:1.45;white-space:pre-wrap;word-break:break-word;">' + content + '</p>' +
                 '</div>' +
                 '<div class="d-flex gap-3 mt-1 flex-wrap align-items-center">' +
                 '<small class="text-muted"><i class="bi bi-chat-dots me-1"></i>' + nComent.toLocaleString("es-ES") + ' comentarios</small>' +
-                '<small class="text-muted"><i class="bi ' + stanceIcon + ' me-1"></i>Tono: ' + _stanceLabel(stance) + '</small>' +
-                (pct !== null ? '<small class="ms-auto fw-bold" style="font-size:.65rem;color:' + cat.color + ';" title="ScoreOP_pct: % del potencial positivo obtenido">' + pct.toFixed(1) + '%</small>' : "") +
+                '<small class="text-muted"><i class="bi ' + ' me-1"></i>Postura del autor: ' + _stanceLabel(stance) + '</small>' +
+                (pct !== null ? '<small class="ms-auto fw-bold" style="font-size:.65rem;color:' + cat.color + ';" title="El ECHO score resume la orientación y repercusión social de la publicación y las respuestas asociadas.">ECHO score: ' + pct.toFixed(1) + '%</small>' : "") +
                 '</div></div>';
         }).join("");
     }
 
     function _stanceLabel(stance) {
-        if (stance === 1 || stance === "1") return "Positivo";
-        if (stance === -1 || stance === "-1") return "Negativo";
-        if (stance === 0 || stance === "0") return "Neutro";
-        return stance || "--";
+        if (stance === 1 || stance === "1") return "👍 A favor";
+        if (stance === -1 || stance === "-1") return "👎 En contra";
+        if (stance === 0 || stance === "0") return "➖ Neutral";
+        if (stance === 2 || stance === "2") return "No determinable";
+        return "--";
     }
 
     // ════════════════════════════════════════════════════════

@@ -2194,11 +2194,11 @@ def build_analysis_pdf(
     story.append(Spacer(1, 0.3 * cm))
 
     story.append(Paragraph("3.1 Metodología: modelo ECHO score", ST["subsection"]))
-
+    print("ST body:", type(ST["body"]), repr(ST["body"]))
     story.append(Paragraph(
-        "El indicador de postura ponderada por esfuerzo social, y alcance,  denominado <b>ECHO score</b>, resume la orientación y repercusión social de las intervenciones en la conversación digital. "
+        "El indicador de postura ponderada por esfuerzo social, y alcance,  denominado <b>ECHO score</b>, resume la orientación y repercusión social de las intervenciones en la conversación digital. " 
         "A diferencia de los modelos basados en la frecuencia de menciones positivas o negativas, "
-        "este indicador pondera la contribución de cada publicación y de los comentarios asociados según la postura expresada y su tracción social, integrando factores relacionados con la interacción, el esfuerzo social y el alcance. ", 
+        "este indicador pondera la contribución de cada publicación y de los comentarios asociados según la postura expresada y su tracción social, integrando factores relacionados con la interacción, el esfuerzo social y el alcance. "  
         "De este modo, el ECHO score permite identificar qué orientación adquiere mayor peso dentro del conjunto de la conversación analizada.",
         # "incorporando factores asociados al nivel de interacción generado, al alcance potencial del emisor y a la respuesta de la comunidad " \
         # "frente al contenido publicado.",

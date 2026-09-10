@@ -438,6 +438,9 @@ def calcular_dashboard_base(df):
                         'neutro':       int(((p >= 40) & (p < 60)).sum()),
                         'negativo':     int(((p >= 20) & (p < 40)).sum()),
                         'muy_negativo': int((p < 20).sum()),
+                        'distribucion_positiva':   int((p > 60).sum()),
+                        'distribucion_equilibrio': int(((p >= 40) & (p <= 60)).sum()),
+                        'distribucion_negativa':   int((p < 40).sum()),
                     }
  
                 scoreop_distribution = _dist_pct(df_scoreop)
@@ -484,7 +487,8 @@ def calcular_dashboard_base(df):
                 # ── Top / Bottom posts (estrictamente separados) ──────────────
                 cols_post = [c for c in
                     ['plataforma', 'contenido_post', 'stance_post', 'FECHA',
-                     'num_comentarios', 'ScoreOP', 'ScoreOP_pct', 'topic', 'ScoreOP_sup']
+                     'num_comentarios', 'ScoreOP', 'ScoreOP_pct', 'topic',
+                     'sentimiento_topic', 'ScoreOP_sup']
                     if c in df_scoreop.columns]
  
                 _has_sup = 'ScoreOP_sup' in df_scoreop.columns
@@ -1020,10 +1024,13 @@ def filtrar_y_recalcular_dashboard(
         p = frame["ScoreOP_pct"]
         return {
             "muy_positivo": int((p > 80).sum()),
-            "positivo": int(((p > 60) & (p <= 80)).sum()),
+            "positivo": int(((p >= 60) & (p <= 80)).sum()),
             "neutro": int(((p >= 40) & (p < 60)).sum()),
             "negativo": int(((p >= 20) & (p < 40)).sum()),
             "muy_negativo": int((p < 20).sum()),
+            "distribucion_positiva": int((p > 60).sum()),
+            "distribucion_equilibrio": int(((p >= 40) & (p <= 60)).sum()),
+            "distribucion_negativa": int((p < 40).sum()),
         }
  
     scoreop_dist = _dist_scoreop(df_filtrado)
@@ -1053,7 +1060,7 @@ def filtrar_y_recalcular_dashboard(
 
         cols = [
             "plataforma", "contenido_post", "stance_post",
-            "ScoreOP", "ScoreOP_pct", "topic"
+            "ScoreOP", "ScoreOP_pct", "topic", "sentimiento_topic"
         ]
         if fecha_col:
             cols.append(fecha_col)

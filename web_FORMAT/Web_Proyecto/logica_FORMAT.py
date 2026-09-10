@@ -352,6 +352,16 @@ def calcular_dashboard_base(df):
  
         if scoreop_file.exists():
             df_scoreop = pd.read_csv(scoreop_file, sep=';', encoding='utf-8')
+            if 'sentimiento_topic' not in df_scoreop.columns and 'sentiment_llm' in df_scoreop.columns:
+                df_scoreop['sentimiento_topic'] = (
+                    pd.to_numeric(df_scoreop['sentiment_llm'], errors='coerce')
+                    .map({
+                        1: '👍 Positiva',
+                        -1: '👎 Negativa',
+                        0: '➖ Neutral'
+                    })
+                    .fillna('')
+                )
  
             if not df_scoreop.empty:
                 # ── Asegurar columnas normalizadas ────────────────────────────

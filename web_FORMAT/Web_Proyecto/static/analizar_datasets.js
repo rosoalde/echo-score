@@ -559,7 +559,7 @@ document.addEventListener("DOMContentLoaded", () => {
         _renderInterpretacionGlobal(globalPct, scoreop);
 
         var plataformas = sortByPlatformOrder(Object.keys(distPorPlat));
-        var hayMultiPlat = plataformas.length > 1;
+        var hayMultiPlat = plataformas.length > 0;
 
         var contentEl = document.getElementById("scoreop-content");
         if (!contentEl) return;

@@ -194,11 +194,11 @@ def _plat_color(name: str, idx: int = 0) -> str:
 
 
 def _scoreop_cat(pct: float) -> tuple[str, str]:
-    if pct > 80:  return "Repercusión positiva muy alta",        "#0a7c4a"
-    if pct >= 60: return "Repercusión positiva",             "#0eb26c"
+    if pct > 80:  return "Repercusión de apoyo muy alta",        "#0a7c4a"
+    if pct >= 60: return "Repercusión de apoyo",             "#0eb26c"
     if pct >= 40: return "Repercusión equilibrada / polarizada",   "#adb5bd"
-    if pct >= 20: return "Repercusión negativa",          "#f28c8c"
-    return             "Repercusión negativa muy alta",         "#d8535f"
+    if pct >= 20: return "Repercusión de rechazo",          "#f28c8c"
+    return             "Repercusión de rechazo muy alta",         "#d8535f"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -497,7 +497,7 @@ def _chart_topics_bar(topics: list) -> bytes | None:
     ax.set_yticks(y)
     ax.set_yticklabels(labels, fontsize=8)
     ax.set_xlabel("% de publicaciones", fontsize=8)
-    ax.set_title("Temas detectados — distribución de polaridad en posts",
+    ax.set_title("Temas detectados — distribución de valoración en posts",
                  fontsize=10, fontweight="bold", color="#1B3A6B")
     ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0f}%"))
     ax.axvline(50, color="#D0D9EC", linewidth=0.8, linestyle="--")
@@ -2015,7 +2015,7 @@ def build_analysis_pdf(
         #            "Cada publicación es tratada como la 'voz del autor'.", ST["table_cell"])],
          Paragraph(f"{sources_desc_short.capitalize()} originales. "
          "Cada publicación representa la postura expresada por su autor y se clasifica según su orientación: "
-        "negativa (-1), neutral o equilibrada (0) o positiva (1). ",
+        "en contra del tema de análisis (-1), neutral o equilibrada (0) o a favor del tema de análisis (1). ",
         ST["table_cell"])],
         [Paragraph("Comentarios totales",    ST["table_cell"]),
          Paragraph(f"{_fmt_int(total_com)}",         ST["table_cell"]),
@@ -2027,14 +2027,14 @@ def build_analysis_pdf(
         [Paragraph("Temas identificados",    ST["table_cell"]),
          Paragraph(f"{_fmt_int(n_topics_post)}",       ST["table_cell"]),
          Paragraph("Principales temas o aspectos identificados automáticamente en las publicaciones analizadas. "
-                   "Cada publicación se asocia a un tópico que representa el asunto concreto del que trata." 
+                   "Cada publicación se asocia a un tópico que representa el asunto concreto del que trata. " 
                    "El sistema prioriza la reutilización de categorías existentes para reducir duplicidades y mantener la coherencia del análisis.",
                    ST["table_cell"])],
 
         [Paragraph("ECHO global",     ST["table_cell"]),
          Paragraph(f"{s_global:.2f}%",       ST["table_cell"]),
          Paragraph("Indicador agregado que resume la orientación de la conversación a partir de las posturas expresadas en las publicaciones y sus comentarios. " \
-         "Integra las posturas negativa (-1), neutral o equilibrada (0) y positiva (1), ponderando su contribución según la tracción social, el esfuerzo y el alcance. " \
+         "Integra las posturas en contra (-1), neutral o equilibrada (0) y a favor (1), ponderando su contribución según la tracción social, el esfuerzo y el alcance. " \
          "El resultado se consolida considerando la masa discursiva de cada red, de modo que la puntuación refleja la orientación social que adquiere mayor peso en el conjunto analizado.", 
         #  "Índice global de posicionamiento calculado mediante agregación "
         #             "ponderada del índice de posicionamiento por plataforma según el volumen total de "
@@ -2060,16 +2060,16 @@ def build_analysis_pdf(
             ),
         ])
     kpi_data.append([
-        Paragraph("Mayor repercusión positiva", ST["table_cell"]),
+        Paragraph("Mayor repercusión de apoyo", ST["table_cell"]),
          Paragraph(f"{s_max:.2f}%" if s_max else "—", ST["table_cell"]),
-         Paragraph("Publicación con el ECHO score más alto, que representa la mayor orientación positiva ponderada por su tracción social.",
+         Paragraph("Publicación con el ECHO score más alto, que representa la mayor orientación a favor ponderada por su tracción social.",
                    ST["table_cell"]
         ),
     ])
 
-    kpi_data.append([Paragraph("Mayor repercusión negativa", ST["table_cell"]),
+    kpi_data.append([Paragraph("Mayor repercusión de rechazo", ST["table_cell"]),
          Paragraph(f"{s_min:.2f}%" if s_min is not None else "—", ST["table_cell"]),
-         Paragraph("Publicación con el ECHO score más bajo, que representa la mayor orientación negativa ponderada por su tracción social.",
+         Paragraph("Publicación con el ECHO score más bajo, que representa la mayor orientación en contra ponderada por su tracción social.",
                    ST["table_cell"]
         ),
     ])
@@ -2211,7 +2211,7 @@ def build_analysis_pdf(
          Paragraph("<b>Por qué importa</b>", ST["table_header"])],
 
         [Paragraph("Postura del autor y de los comentarios", ST["table_cell"]),
-         Paragraph("El análisis automatizado asigna a cada post y comentario un valor de postura respecto al tema de estudio introducido: "
+         Paragraph("El análisis automatizado asigna a cada publicación y comentario un valor de postura respecto al tema de estudio introducido: "
              "+1 = a favor / apoyo, 0 = neutro / informativo / equilibrado, -1 = en contra / crítico. "
              "Los contenidos clasificados como 2 (sin postura inferida) "
              "se excluyen completamente del cálculo",# — no aportan ni numerador ni denominador.",
@@ -2414,24 +2414,24 @@ def build_analysis_pdf(
      Paragraph("<b>Significado sociométrico</b>", ST["table_header"])],
     
     [Paragraph("&gt; 80%", ST["table_cell_c"]),
-     Paragraph("Repercusión positiva muy alta", ST["table_cell"]),
-     Paragraph("La orientación positiva presenta una repercusión social muy elevada dentro del conjunto analizado, debido a la combinación de postura, interacción y alcance.", ST["table_cell"])],
+     Paragraph("Repercusión a favor muy alta", ST["table_cell"]),
+     Paragraph("La orientación a favor presenta una repercusión social muy elevada dentro del conjunto analizado, debido a la combinación de postura, interacción y alcance.", ST["table_cell"])],
     
     [Paragraph("60% – 80%", ST["table_cell_c"]),
-     Paragraph("Repercusión positiva", ST["table_cell"]),
-     Paragraph("La orientación positiva tiene mayor peso en la conversación analizada, aunque también están presentes intervenciones con orientación neutral o negativa.", ST["table_cell"])],
+     Paragraph("Repercusión a favor", ST["table_cell"]),
+     Paragraph("La orientación a favor tiene mayor peso en la conversación analizada, aunque también están presentes intervenciones con orientación neutral o en contra.", ST["table_cell"])],
     
     [Paragraph("40% – 60%", ST["table_cell_c"]),
      Paragraph("Repercusión equilibrada / polarizada", ST["table_cell"]),
-     Paragraph("Las orientaciones positiva y negativa presentan un peso social similar, o bien predomina una orientación neutral que mantiene el resultado próximo al punto de equilibrio.", ST["table_cell"])],
+     Paragraph("Las orientaciones a favor y en contra presentan un peso social similar, o bien predomina una orientación neutral que mantiene el resultado próximo al punto de equilibrio.", ST["table_cell"])],
     
     [Paragraph("20% – 40%", ST["table_cell_c"]),
-     Paragraph("Repercusión negativa", ST["table_cell"]),
-     Paragraph("La orientación negativa adquiere mayor peso en la conversación analizada, teniendo en cuenta la interacción y el alcance de las intervenciones.", ST["table_cell"])],
+     Paragraph("Repercusión en contra", ST["table_cell"]),
+     Paragraph("La orientación en contra adquiere mayor peso en la conversación analizada, teniendo en cuenta la interacción y el alcance de las intervenciones.", ST["table_cell"])],
     
     [Paragraph("&lt; 20%", ST["table_cell_c"]),
-     Paragraph("Repercusión negativa muy alta", ST["table_cell"]),
-     Paragraph("La orientación negativa presenta una repercusión social muy elevada dentro del conjunto analizado, debido a la combinación de postura, interacción y alcance.", ST["table_cell"])],
+     Paragraph("Repercusión de rechazo muy alta", ST["table_cell"]),
+     Paragraph("La orientación de rechazo presenta una repercusión social muy elevada dentro del conjunto analizado, debido a la combinación de postura, interacción y alcance.", ST["table_cell"])],
 ]
     interp_tbl = Table(interp_data, colWidths=[CW*0.18, CW*0.20, CW*0.62])
     interp_tbl_style = TableStyle(_TBLSTYLE_BASE[:])
@@ -2447,10 +2447,10 @@ def build_analysis_pdf(
     story.append(Spacer(1, 0.15*cm))
     story.append(Paragraph(
         "Nota: El indicador ECHO global no es un promedio de los ECHO score de cada publicación. "
-        "Se define como el ratio entre la <b>energía neta acumulada</b> y el <b>soporte máximo potencial</b> del conjunto analizado." \
+        "Se define como el ratio entre la <b>energía neta acumulada</b> y el <b>soporte máximo potencial</b> del conjunto analizado. " \
         "Esta arquitectura permite que el indicador sea sensible a la <b>asimetría de impacto</b>: "
-        "dos escenarios con idéntico número de publicaciones favorables y críticas arrojarán resultados "
-        "divergentes si la tracción social (interacción y alcance) está concentrada en una de las dos polaridades.",
+        "dos escenarios con idéntico número de publicaciones a favor y en contra arrojarán resultados "
+        "divergentes si la tracción social (interacción y alcance) está concentrada en una de las dos posturas.",
         ST["note"]
     ))
     story.append(Spacer(1, 0.3*cm))
@@ -2533,7 +2533,7 @@ def build_analysis_pdf(
             story.append(plat_tbl)
             story.append(Spacer(1, 0.15*cm))
             story.append(Paragraph(
-                "Motores (+): publicaciones originales con ECHO score > 60%, cuya orientación positiva presenta una mayor repercusión social. "
+                "Motores (+): publicaciones originales con ECHO score > 60%, cuya orientación de apoyo presenta una mayor repercusión social. "
                 "Neutros: publicaciones con ECHO score entre 40 % y 60 %, sin una orientación claramente predominante. Motores (-): publicaciones originales con ECHO score < 40 %, cuya orientación negativa presenta una mayor repercusión social.",
                 ST["note"]
             ))
@@ -2560,9 +2560,9 @@ def build_analysis_pdf(
                 "Cada gráfico monitoriza la evolución cronológica de la postura mediante el promedio diario de los valores <b>ECHO score</b>. "
                 "La línea continua representa la <b>Postura Media Diaria</b>, identificando la respuesta inmediata de la opinión pública ante hitos o eventos específicos. "
                 "Por otro lado, la línea discontinua representa el <b>Balance Neto Acumulado</b> (Inercia del Clima Social), definido como el sumatorio progresivo de las desviaciones diarias respecto al punto de equilibrio (50%). "
-                "Este indicador no representa un promedio, sino que permite observar cómo se acumula la orientación positiva o negativa a lo largo del periodo analizado: <br/><br/>"
-                "• <b>Valores positivos:</b> indican una acumulación de valores diarios por encima del punto de equilibrio, reflejando una orientación positiva sostenida en el periodo.<br/>"
-                "• <b>Valores negativos:</b> indican una acumulación de valores diarios por debajo del punto de equilibrio, reflejando una orientación negativa sostenida en el periodo.<br/>"
+                "Este indicador no representa un promedio, sino que permite observar cómo se acumula la orientación de apoyo o de rechazo a lo largo del periodo analizado: <br/><br/>"
+                "• <b>Valores positivos:</b> indican una acumulación de valores diarios por encima del punto de equilibrio, reflejando una orientación de apoyo sostenida en el periodo.<br/>"
+                "• <b>Valores negativos:</b> indican una acumulación de valores diarios por debajo del punto de equilibrio, reflejando una orientación de rechazo sostenida en el periodo.<br/>"
                 "• <b>Valores cercanos a 0:</b> indican que las desviaciones positivas y negativas se compensan a lo largo del periodo, sin una orientación acumulada claramente predominante.",
                 ST["body"]
             ))
@@ -2585,11 +2585,11 @@ def build_analysis_pdf(
              Paragraph("<b>Qué indica</b>",            ST["table_header"])],
         ]
         cat_info = [
-            ("Repercusión positiva muy alta",  "> 80%",    "#e8f5e9", "Orientación positiva con una repercusión social muy elevada."),
-            ("Repercusión positiva alta",     "60 – 80%", "#f1f8e9", "Predominio de la orientación positiva en la conversación analizada."),
-            ("Repercusión neutra",            "40 – 60%", "#f5f5f5", "Sin una orientación claramente predominante; las contribuciones positivas y negativas presentan un peso similar."),
-            ("Repercusión negativa alta",     "20 – 40%", "#fff3e0", "Predominio de la orientación negativa en la conversación analizada."),
-            ("Repercusión negativa muy alta", "< 20%",    "#ffebee", "Orientación negativa con una repercusión social muy elevada."),
+            ("Repercusión de apoyo muy alta",  "> 80%",    "#e8f5e9", "Orientación de apoyo con una repercusión social muy elevada."),
+            ("Repercusión de apoyo alta",     "60 – 80%", "#f1f8e9", "Predominio de la orientación de apoyo en la conversación analizada."),
+            ("Repercusión neutra",            "40 – 60%", "#f5f5f5", "Sin una orientación claramente predominante; las contribuciones de apoyo y de rechazo presentan un peso similar."),
+            ("Repercusión de rechazo alta",     "20 – 40%", "#fff3e0", "Predominio de la orientación de rechazo en la conversación analizada."),
+            ("Repercusión de rechazo muy alta", "< 20%",    "#ffebee", "Orientación de rechazo con una repercusión social muy elevada."),
         ]
         total_dist = sum(s_dist.get(c[0], 0) for c in cat_info) or 1
         for cat, rango, bg, desc in cat_info:
@@ -2611,8 +2611,8 @@ def build_analysis_pdf(
 
         story.append(Paragraph("3.7 Publicaciones representativas", ST["subsection"]))
         story.append(Paragraph(
-            "Se muestran hasta 5 publicaciones con mayor repercusión positiva (<b>motores positivos</b>) "
-            "y hasta 5 con mayor repercusión negativa (<b>motores negativos</b>). "
+            "Se muestran hasta 5 publicaciones con mayor repercusión de apoyo (<b>motores de apoyo</b>) "
+            "y hasta 5 con mayor repercusión de rechazo (<b>motores de rechazo</b>). "
             "El ECHO score de cada publicación resume la orientación de su postura y la de los comentarios asociados, ponderando su contribución según la interacción, el esfuerzo social y el alcance.",
             ST["body"]
         ))
@@ -2658,9 +2658,9 @@ def build_analysis_pdf(
             story.append(tbl)
             story.append(Spacer(1, 0.25*cm))
 
-        _posts_table(s_top, "Motores de repercusión positiva (Indicador > 60%)",
+        _posts_table(s_top, "Motores de repercusión de apoyo (Indicador > 60%)",
                      colors.HexColor("#1b5e20"), "#0a7c4a")
-        _posts_table(s_bot, "Motores de repercusión negativa (Indicador < 40%)",
+        _posts_table(s_bot, "Motores de repercusión de rechazo (Indicador < 40%)",
                      colors.HexColor("#b71c1c"), "#d8535f")
 
     else:
@@ -2828,12 +2828,12 @@ def build_analysis_pdf(
 
     story.append(Paragraph(
         "El sistema emplea un modelo ajustado específicamente "
-        "para el análisis automatizado de conversaciones digitales, permitiendo identificar la polaridad del argumento expresado en publicaciones y comentarios, " \
-        "así como los principales argumentos asociados a cada polaridad. "
-        "A cada contenido analizado se le asigna una categoría de postura y un tópico argumental representativo, entendido como el motivo principal "
-        "que explica la posición expresada respecto al tema de estudio. De este modo, el análisis permite identificar no solo la orientación general de la "
+        "para el análisis automatizado de conversaciones digitales, permitiendo identificar la valoración del argumento expresado en publicaciones y comentarios, " \
+        "así como los principales argumentos asociados a cada valoración. "
+        "A cada contenido analizado se le asigna una categoría de valoración y un tópico argumental representativo, entendido como el motivo principal "
+        "que explica la postura expresada respecto al tema de estudio. De este modo, el análisis permite identificar no solo la orientación general de la "
         "conversación, sino también los argumentos más frecuentes que estructuran el debate público digital. "
-        "Las señales obtenidas se integran posteriormente en el cálculo del indicador de posición de cada conversación analizada.",
+        "Las señales obtenidas se integran posteriormente en el cálculo del indicador de postura de cada conversación analizada.",
         # "para la detección de postura y la extracción de tópicos argumentales restringidos, "
         # "bajo un esquema de normalización semántica y reutilización controlada de etiquetas. "
         # "A cada unidad de contenido analizada (publicaciones y comentarios) se le asigna una postura "
@@ -2875,9 +2875,9 @@ def build_analysis_pdf(
         for red in redes:
             topic_rows[0].append(Paragraph(f"<b>{red.capitalize()}</b><br/><b>(%)</b>", ST["table_header"]))
         topic_rows[0].extend([
-            Paragraph("<b>Motores positivos</b>", ST["table_header"]),
-            Paragraph("<b>Motores neutrales / polarizados</b>",    ST["table_header"]),
-            Paragraph("<b>Motores negativos</b>",  ST["table_header"]),
+            Paragraph("<b>Valoraciones positivas</b>", ST["table_header"]),
+            Paragraph("<b>Valoraciones neutrales / polarizadas</b>",    ST["table_header"]),
+            Paragraph("<b>Valoraciones negativas</b>",  ST["table_header"]),
         ])
 
         for t in top_topics:
@@ -2911,7 +2911,7 @@ def build_analysis_pdf(
         plat_col_min = 1.6* cm
         plat_block_w = max(CW * 0.30, plat_col_min * n_redes)
 
-        # Columnas fijas (Tema, Menciones, % del total, Motores +/Neutros/-)
+        # Columnas fijas (Tema, Menciones, % del total, Valoraciones +/Neutras/-)
         # se reducen proporcionalmente si el bloque de plataformas creció.
         fixed_w = CW - plat_block_w
         fixed_props = [0.20, 0.18, 0.16, 0.16, 0.16, 0.16]  # deben sumar 1.0
@@ -2997,9 +2997,9 @@ def build_analysis_pdf(
         story.append(Paragraph(
             "Esta nube organiza las palabras y frases según su capacidad de movilización. El <b>tamaño</b> "
             "indica el impacto real (alcance del autor más la reacción generada en comentarios). El <b>color</b> "
-            "refleja el tono del argumento (verde para mensajes amables, rojo para mensajes críticos). La <b>opacidad</b> "
-            "mide la coherencia: los términos más nítidos indican que el tono del mensaje coincide con la postura "
-            "política del autor, mientras que los traslúcidos señalan usos irónicos, matizaciones o contradicciones.",
+            "refleja la valoración del argumento (verde para argumentos con valoración positiva, rojo para argumentos con valoración negativa). La <b>opacidad</b> "
+            "mide la coherencia: los términos más nítidos indican que la valoración del argumento del mensaje coincide con la postura "
+            "del autor, mientras que los traslúcidos señalan matizaciones o contradicciones en las valoraciones de los argumentos y las posturas.",
             ST["body"]
         ))
         story.append(Spacer(1, 0.2*cm))
@@ -3108,7 +3108,7 @@ def build_analysis_pdf(
                 # "Los valores marcados como <i>sin relación</i> (2) se excluyen del cálculo del pilar correspondiente, de modo que cada indicador refleja únicamente opiniones donde existe evidencia semántica suficiente sobre esa dimensión concreta. "
                 # "Finalmente, las clasificaciones obtenidas para publicaciones y comentarios se agregan jerárquicamente mediante el mismo esquema matemático utilizado para la construcción del indicador de posición, permitiendo la estimación de métricas de aceptación social en distintos niveles de agregación (publicación, red social y global), tanto a nivel de pilar como en forma de síntesis general.",
                 "Posteriormente, las señales obtenidas de publicaciones y comentarios se integran en el cálculo de los distintos indicadores " \
-                "de aceptación social, permitiendo analizar tanto la posición expresada en cada conversación como las reacciones generadas dentro de la comunidad digital.",
+                "de aceptación social, permitiendo analizar tanto la postura expresada en cada conversación como las reacciones generadas dentro de la comunidad digital.",
                 ST["body"]
             ))
             story.append(Spacer(1, 0.3*cm))
@@ -3136,8 +3136,8 @@ def build_analysis_pdf(
                 "&gt;60% = aceptación neta ·  40-60% = neutralidad / polarización ·  "
                 "&lt;40% = rechazo neto. "
                 "El valor de 50% representa neutralidad perfecta, es decir, equilibrio estructural entre apoyo y rechazo dentro del pilar analizado. "
-                "Cada indicador de pilar se calcula aplicando la misma arquitectura matemática del indicador de posición ponderada, "
-                # "pero sustituyendo la posición general del contenido por la posición específica respecto a cada dimensión de aceptación pública "
+                "Cada indicador de pilar se calcula aplicando la misma arquitectura matemática del indicador de postura ponderada, "
+                # "pero sustituyendo la postura general del contenido por la postura específica respecto a cada dimensión de aceptación pública "
                 "adaptada a cada una de las dimensiones de aceptación pública evaluadas "
                 "(legitimación, efectividad, justicia y confianza institucional). "
                 # "El cálculo se realiza a nivel de hilo de publicación (post + comentarios), combinando un 40% del posicionamiento de la publicación original "
@@ -3266,7 +3266,7 @@ def build_analysis_pdf(
 
             story.append(Paragraph("5.7 Distribución de posiciones por pilar", ST["subsection"]))
             story.append(Paragraph(
-                "La siguiente tabla muestra, para cada pilar, cuántas publicaciones tomaron posición "
+                "La siguiente tabla muestra, para cada pilar, cuántas publicaciones tomaron postura "
                 "a favor, de forma neutra o en contra. Solo se contabilizan publicaciones que mencionan "
                 "explícitamente ese pilar (publicaciones con valor 2 = sin relación se excluyen).",
                 ST["body"]
@@ -3314,7 +3314,7 @@ def build_analysis_pdf(
 
         story.append(PageBreak())
         story.append(Paragraph(
-            "6. Motores de repercusión positiva y negativa por pilar y plataforma",
+            "6. Motores de repercusión de apoyo y rechazo por pilar y plataforma",
             ST["section_title"]
         ))
         story.append(ColorBar(CW, height=2, color=C_ACCENT))
@@ -3323,10 +3323,10 @@ def build_analysis_pdf(
         story.append(Paragraph(
             "Esta sección identifica los contenidos que ejercen mayor tracción "
             "sobre cada dimensión de aceptación social analizada. "
-            "Se consideran <b>motores de repercusión positiva</b> aquellos hilos de conversación (publicación original y comentarios asociados) "
+            "Se consideran <b>motores de repercusión de apoyo</b> aquellos hilos de conversación (publicación original y comentarios asociados) "
             "cuya contribución agregada al indicador del pilar es favorable, "
             "es decir, aquellos en los que tanto el posicionamiento inicial como la respuesta de la comunidad tienden a reforzar " \
-            "la aceptación de la medida o política pública. Por el contrario, los <b>motores de repercusión negativa</b> corresponden a hilos cuya " \
+            "la aceptación de la medida o política pública. Por el contrario, los <b>motores de repercusión de rechazo</b> corresponden a hilos cuya " \
             "contribución agregada desplaza el indicador en sentido desfavorable, reflejando dinámicas de oposición o cuestionamiento dentro de la conversación digital.",
             # "del autor y la respuesta de la comunidad empujan el pilar en sentido favorable. "
             # "Un <b>motor de rechazo</b> es el caso contrario: la suma ponderada 40/60 resulta "
@@ -3477,7 +3477,7 @@ def build_analysis_pdf(
 
                 if apoyo:
                     story.append(Paragraph(
-                        f"Motores de repercusión positiva — {len(apoyo)} publicaciones con mayor repercusión positiva",
+                        f"Motores de repercusión de apoyo — {len(apoyo)} publicaciones con mayor repercusión de apoyo",
                         ParagraphStyle("_ms_apoyo", fontName="Helvetica-Bold", fontSize=8,
                                        textColor=colors.HexColor("#1b5e20"),
                                        spaceBefore=3, spaceAfter=2, leading=10)
@@ -3489,7 +3489,7 @@ def build_analysis_pdf(
 
                 if rechazo:
                     story.append(Paragraph(
-                        f"Motores de repercusión negativa — {len(rechazo)} publicaciones con mayor repercusión negativa",
+                        f"Motores de repercusión de rechazo — {len(rechazo)} publicaciones con mayor repercusión de rechazo",
                         ParagraphStyle("_ms_rechazo", fontName="Helvetica-Bold", fontSize=8,
                                        textColor=colors.HexColor("#b71c1c"),
                                        spaceBefore=3, spaceAfter=2, leading=10)
@@ -3507,8 +3507,8 @@ def build_analysis_pdf(
 
         story.append(Spacer(1, 0.3 * cm))
         story.append(Paragraph(
-            "Nota: se muestran hasta 5 motores de repercusión positiva y 5 de repercusión negativa por pilar y plataforma. "
-            "Un mismo hilo puede ser motor positivo en un pilar y negativo en otro "
+            "Nota: se muestran hasta 5 motores de repercusión de apoyo y 5 de repercusión de rechazo por pilar y plataforma. "
+            "Un mismo hilo puede ser motor de apoyo en un pilar y de rechazo en otro "
             "si la comunidad responde de forma diferente a cada dimensión de aceptación.",
             ST["note"]
         ))
@@ -3564,7 +3564,7 @@ def build_analysis_pdf(
         "mediante interfaces oficiales de programación (API) y protocolos autorizados de acceso interoperable "
         "proporcionados por YouTube, Reddit y Bluesky. "
         "Los resultados deben interpretarse en función del contexto temporal, las plataformas analizadas y el volumen de información disponible en cada caso. La representatividad de los indicadores depende de la diversidad, cobertura y nivel de participación existente en las publicaciones recopiladas, por lo que los resultados no constituyen encuestas demoscópicas ni mediciones estadísticas representativas de la población general. "
-        "Las métricas se expresan en una escala normalizada de 0% a 100%, donde el 50% representa una situación de neutralidad o equilibrio estructural entre polaridades positivas y negativas; los valores superiores indican una mayor alineación positiva y los inferiores una mayor presencia de negatividad en la conversación analizada. "
+        "Las métricas se expresan en una escala normalizada de 0% a 100%, donde el 50% representa una situación de neutralidad o equilibrio estructural entre posturas de apoyo y de rechazo; los valores superiores indican una mayor alineación de apoyo y los inferiores una mayor presencia de rechazo en la conversación analizada. "
         "Los resultados, interpretaciones y métricas generadas tienen carácter exclusivamente analítico e informativo. Los responsables del sistema no se hacen responsables de las decisiones, conclusiones o actuaciones adoptadas por terceros a partir de la utilización, interpretación o extrapolación de los resultados contenidos en este informe.",
         ST["body"]
     ))
@@ -3581,16 +3581,16 @@ def build_analysis_pdf(
 
 def _interp_scoreop(pct: float) -> str:
     if pct > 80:
-        return "Existe una repercusión positiva muy alta en la conversación analizada."
+        return "Existe una repercusión de apoyo muy alta en la conversación analizada."
     if pct > 60:
-        return "Predomina la orientación positiva, con una repercusión social claramente superior a la negativa."
+        return "Predomina la orientación de apoyo, con una repercusión social claramente superior a la de rechazo."
     if pct > 40:
-        return ("Las orientaciones positiva y negativa presentan una repercusión similar, sin una dominancia clara en la conversación analizada.")
+        return ("Las orientaciones de apoyo y rechazo presentan una repercusión similar, sin una dominancia clara en la conversación analizada.")
     if pct == 40 or pct == 50 or pct == 60:
-        return "La repercusión negativa y positiva se encuentran en un punto de equilibrio o polarización."
+        return "La repercusión de apoyo y rechazo se encuentran en un punto de equilibrio o polarización."
     if pct > 20:
-        return "Predomina la orientación negativa, con una repercusión social superior a la positiva."
-    return "Existe una repercusión negativa muy alta en la conversación analizada."
+        return "Predomina la orientación de rechazo, con una repercusión social superior a la de apoyo."
+    return "Existe una repercusión de rechazo muy alta en la conversación analizada."
 
 # ────────────────────────────────────────────────────────────────────────────
 # OTRAS FUNCIONES AUXILIARES

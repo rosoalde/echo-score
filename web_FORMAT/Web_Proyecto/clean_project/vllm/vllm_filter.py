@@ -39,13 +39,13 @@ from typing import Optional
 import pandas as pd
 from openai import OpenAI
 
-from clean_project.vllm.model_config import MODELO_ACTIVO
+from clean_project.vllm.model_config import MODELO_ACTIVO, LLM_KWARGS, MAX_TOKENS_GATEKEEPER
 
 # ── vLLM client ──────────────────────────────────────────────────────────────
 client = OpenAI(
     base_url="http://host.docker.internal:8001/v1",
     api_key="local-token",
-    timeout=60.0,
+    timeout=600.0,
 )
 MODEL_NAME = MODELO_ACTIVO
 BATCH_SIZE = 80
@@ -185,7 +185,8 @@ def _worker_geo(idx: int, texto: str, termino: str) -> tuple[int, Optional[int]]
                 {"role": "user",   "content": _build_prompt_geo(termino, texto)},
             ],
             temperature=0.0,
-            max_tokens=12,
+            max_tokens=MAX_TOKENS_GATEKEEPER,
+            **LLM_KWARGS,
         )
         raw = resp.choices[0].message.content.strip()
         m   = re.search(r'"r"\s*:\s*([01])', raw)
@@ -213,7 +214,8 @@ def _worker_topic(
                 {"role": "user",   "content": _build_prompt_topic(argumento, tema, texto)},
             ],
             temperature=0.0,
-            max_tokens=15,
+            max_tokens=MAX_TOKENS_GATEKEEPER,
+            **LLM_KWARGS,
         )
         raw = resp.choices[0].message.content.strip()
         m   = re.search(r'"r"\s*:\s*(-?[012])', raw)

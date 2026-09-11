@@ -51,7 +51,7 @@ if MODELO_ES_RAZONADOR:
 # test_modelo_debug.py contra ejemplos reales y ajusta si hace falta.
 MAX_TOKENS_GATEKEEPER: int = 1500 if MODELO_ES_RAZONADOR else 200
 MAX_TOKENS_ANALISIS: int = 6000 if MODELO_ES_RAZONADOR else 4000
-TIMEOUT_LLM: float = 600.0 if MODELO_ES_RAZONADOR else 60.0
+TIMEOUT_LLM: float = 700.0 if MODELO_ES_RAZONADOR else 60.0
 MAX_TOKENS_PILARES: int = 1500 if MODELO_ES_RAZONADOR else 300
 # ── Resumen al importar ───────────────────────────────────
 print(

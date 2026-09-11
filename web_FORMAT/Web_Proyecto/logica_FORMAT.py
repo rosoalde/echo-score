@@ -2617,7 +2617,7 @@ def _calcular_posicion_on_demand(
             df["posicion"] = 0
         return df
 
-    _client = _OpenAI(base_url="http://localhost:8001/v1", api_key="local-token", timeout=45.0)
+    _client = _OpenAI(base_url="http://localhost:8001/v1", api_key="local-token", timeout=600.0)
 
     keywords   = keywords   or []
     languages  = languages  or ["Castellano"]
@@ -3640,7 +3640,7 @@ def _calcular_coherencia_llm_batch(
         client_coh = OpenAI(
             base_url="http://localhost:8001/v1",
             api_key="local-token",
-            timeout=30.0,
+            timeout=600.0,
         )
         from clean_project.vllm.model_config import MODELO_ACTIVO
         MODEL_COH = MODELO_ACTIVO

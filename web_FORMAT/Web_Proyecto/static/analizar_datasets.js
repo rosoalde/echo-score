@@ -625,9 +625,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 <p class="text-muted mb-0 mt-1" style="font-size:.75rem;">
                     Para cada red social se muestra su <strong>ECHO Score</strong> y la distribución de las publicaciones según su repercusión:
                     <ul class="text-muted mb-2 ps-4" style="font-size:.75rem;"> 
-                    <li><strong>Mayor repercusión de posturas a favor / apoyo:</strong> ECHO Score superior al 60%.</li>
+                    <li><strong>Repercusión de posturas a favor / apoyo:</strong> ECHO Score superior al 60%.</li>
                     <li><strong>Influencia neutra:</strong> ECHO Score entre el 40% y el 60%.</li>
-                    <li><strong>Mayor repercusión de posturas en contra / rechazo:</strong> ECHO Score inferior al 40%.</li>
+                    <li><strong>Repercusión de posturas en contra / rechazo:</strong> ECHO Score inferior al 40%.</li>
                     </ul>
                 </p>
             </div>
@@ -1014,7 +1014,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 '</div>' +
                 '<div class="d-flex gap-3 mt-1 flex-wrap align-items-center">' +
                 '<small class="text-muted"><i class="bi bi-chat-dots me-1"></i>' + nComent.toLocaleString("es-ES") + ' comentarios</small>' +
-                '<small class="text-muted"><i class="bi ' + ' me-1"></i>Postura del autor: ' + _stanceLabel(stance) + '</small>' +
+                '<small class="text-muted">Postura del autor: ' + _stanceLabel(stance) + '</small>' +
                 (pct !== null ? '<small class="ms-auto fw-bold" style="font-size:.65rem;color:' + cat.color + ';" title="El ECHO score resume la orientación y repercusión social de la publicación y las respuestas asociadas.">ECHO score: ' + pct.toFixed(1) + '%</small>' : "") +
                 '</div></div>';
         }).join("");
@@ -2083,7 +2083,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         (d.tipo === "bigrama" ? "Frase" : "Palabra") + "</span>" +
                         "<hr style='margin:5px 0;opacity:.2;'>" +
                         "<span style='color:#aaa;'>Relevancia:</span> <strong>" + d.Sb.toFixed(1) + "</strong><br>" +
-                        "<span style='color:#aaa;'>Tono:</span> <strong>" + _posLabel(d.Cb) + "</strong><br>" +
+                        "<span style='color:#aaa;'>Postura:</span> <strong>" + _posLabel(d.Cb) + "</strong><br>" +
                         "<span style='color:#aaa;'>Alineación:</span> <strong>" + Math.round(d.Ib * 100) + "%</strong><br>" +
                         "<span style='color:#aaa;'>Menciones:</span> " + d.Nb
                     );

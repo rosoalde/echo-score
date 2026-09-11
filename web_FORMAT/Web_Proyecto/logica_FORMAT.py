@@ -895,7 +895,12 @@ def filtrar_y_recalcular_dashboard(
     if "texto_citado" not in df.columns:
         df["texto_citado"] = ""
     df["texto_citado"] = df["texto_citado"].fillna("").astype(str)
- 
+    if "sentimiento_topic" not in df.columns and "sentiment_llm" in df.columns:
+        df["sentimiento_topic"] = (
+            pd.to_numeric(df["sentiment_llm"], errors="coerce")
+            .map({1: "👍", -1: "👎", 0: "➖"})
+            .fillna("")
+        ) 
     print(f"\n=== Filtrando ScoreOP con LLM: {len(df)} posts ===")
  
     geo_terms = [t.strip() for t in (terminos_geo or []) if t.strip()]

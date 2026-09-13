@@ -2299,9 +2299,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 var stance = (post.stance_post !== undefined && post.stance_post !== null) ? post.stance_post : "--";
                 var topicAspecto = post.topic || "";
                 var valoracion = post.sentimiento_topic || "";
-                var stanceIcon = (stance === 1 || stance === "1") ? "bi-hand-thumbs-up text-success" :
-                    (stance === -1 || stance === "-1") ? "bi-hand-thumbs-down text-danger" :
-                        "bi-dash-circle text-muted";
+                // var stanceIcon = (stance === 1 || stance === "1") ? "bi-hand-thumbs-up text-success" :
+                //     (stance === -1 || stance === "-1") ? "bi-hand-thumbs-down text-danger" :
+                //         "bi-dash-circle text-muted";
 
                 html +=
                     '<div class="border rounded-3 p-2 mb-2 bg-white shadow-sm">' +
@@ -2324,7 +2324,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     (post.contenido_post || "Sin contenido") + '</p>' +
                     '<div class="d-flex gap-3 mt-1 align-items-center" style="font-size:.6rem;color:#888;">' +
                     '<span><i class="bi bi-chat-dots me-1"></i>' + (post.num_comentarios || 0) + '</span>' +
-                    '<span><i class="bi ' + stanceIcon + ' me-1"></i>Postura del autor: ' + _stanceLabel(stance) + '</span>' +
+                    '<span>Postura del autor: ' + _stanceLabel(stance) + '</span>' +
                     (pct !== null ? '<span class="ms-auto fw-bold" style="color:' + cat.color + ';" title="El ECHO score resume la orientación y repercusión social de la publicación y las respuestas asociadas.">ECHO score: ' + pct.toFixed(1) + '%</span>' : '') +
                     '</div></div>';
             });

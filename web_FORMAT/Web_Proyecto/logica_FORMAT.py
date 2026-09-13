@@ -607,13 +607,16 @@ def _calcular_topics_df(df: pd.DataFrame) -> list:
     )
  
     has_pct = "ScoreOP_pct" in df.columns
- 
+    has_sent = "sentiment_llm" in df.columns
+    if has_sent:
+        df["_sent_topic_num"] = pd.to_numeric(df["sentiment_llm"], errors="coerce")
+
     if has_pct:
         topics_df = df.groupby("TOPIC_CLEAN").agg(
             volumen      = ("TOPIC_CLEAN", "count"),
-            pos          = ("ScoreOP_pct", lambda x: (x > 60).sum()),
-            neu          = ("ScoreOP_pct", lambda x: ((x >= 40) & (x <= 60)).sum()),
-            neg          = ("ScoreOP_pct", lambda x: (x < 40).sum()),
+            pos          = ("_sent_topic_num", lambda x: (x == 1).sum()) if has_sent else ("ScoreOP_pct", lambda x: (x > 60).sum()),
+            neu          = ("_sent_topic_num", lambda x: (x == 0).sum()) if has_sent else ("ScoreOP_pct", lambda x: ((x >= 40) & (x <= 60)).sum()),
+            neg          = ("_sent_topic_num", lambda x: (x == -1).sum()) if has_sent else ("ScoreOP_pct", lambda x: (x < 40).sum()),
             scoreop_prom = ("ScoreOP",     "mean") if "ScoreOP" in df.columns else ("TOPIC_CLEAN", "count"),
             pct_medio    = ("ScoreOP_pct", "mean"),
         ).reset_index()

@@ -694,6 +694,12 @@ def aux_dashboard_data(db: Session, analysis_id_slug: str, current_user):
                 df["FECHA"] = df["fecha"]
             if "plataforma" in df.columns and "FUENTE" not in df.columns:
                 df["FUENTE"] = df["plataforma"]
+            if "sentimiento_topic" not in df.columns and "sentiment_llm" in df.columns:
+                df["sentimiento_topic"] = (
+                    pd.to_numeric(df["sentiment_llm"], errors="coerce")
+                    .map({1: "👍 Positiva", -1: "👎 Negativa", 0: "➖ Neutral"})
+                    .fillna("")
+                )
 
             data = calcular_dashboard_base(df)
             data["desc_tema"] = cfg.get("desc_tema", "Sin descripción")

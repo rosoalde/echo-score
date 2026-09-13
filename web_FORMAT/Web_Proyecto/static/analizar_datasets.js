@@ -2270,10 +2270,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 return (parseFloat(b.ScoreOP_pct) || 50) - (parseFloat(a.ScoreOP_pct) || 50);
             });
 
-            var pctMed = posts.reduce(function (s, p) {
-                return s + (p.ScoreOP_pct !== undefined ? p.ScoreOP_pct : 50);
-            }, 0) / posts.length;
-            var catTopic = scoreopCategoria(pctMed);
+            var nPositivas = posts.filter(function (p) { return (p.sentimiento_topic || "").indexOf("Positiva") !== -1; }).length;
+            var nNegativas = posts.filter(function (p) { return (p.sentimiento_topic || "").indexOf("Negativa") !== -1; }).length;
+            var nNeutras = posts.length - nPositivas - nNegativas;
 
             /* Cabecera del panel */
             var html =
@@ -2281,8 +2280,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 '<h6 class="fw-bold mb-0" style="color:#6f42c1;">' +
                 '<i class="bi bi-tags me-2"></i>' + topicLabel + '</h6>' +
                 '<div class="d-flex gap-2 align-items-center">' +
-                '<span class="badge px-2 py-1" style="' + scoreopBadgeStyle(pctMed) + ';font-size:.65rem;">' +
-                pctMed.toFixed(1) + '% · ' + catTopic.label + '</span>' +
+                '<small class="text-success fw-bold">👍 ' + nPositivas + '</small>' +
+                '<small class="text-muted fw-bold">➖ ' + nNeutras + '</small>' +
+                '<small class="text-danger fw-bold">👎 ' + nNegativas + '</small>' +
                 '<small class="text-muted">' + posts.length + ' publicaciones</small>' +
                 '</div></div>' +
                 '<p class="text-muted mb-3" style="font-size:.72rem;">' +
@@ -2354,18 +2354,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 var pNeu = ((topic.neu || 0) / vol) * 100;
                 var pNeg = ((topic.neg || 0) / vol) * 100;
                 var pGlobal = (vol / (totalGlobal || 1)) * 100;
-                var pctMedio = (topic.pct_medio != null) ? parseFloat(topic.pct_medio) : null;
-                var catBadge = pctMedio !== null ? scoreopCategoria(pctMedio) : null;
-                var badgeHtml = catBadge
-                    ? '<span class="badge ms-2 fw-normal px-2" style="' + scoreopBadgeStyle(pctMedio) + ';font-size:.62rem;">' + catBadge.label + ' · ' + pctMedio.toFixed(1) + '%</span>'
-                    : '';
                 var row = document.createElement("div");
                 row.className = "mb-4";
                 row.innerHTML =
                     '<div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-1">' +
                     '<div class="d-flex align-items-center flex-wrap gap-1">' +
                     '<span class="fw-bold text-dark text-uppercase" style="font-size:0.72rem;">' + label + '</span>' +
-                    badgeHtml +
                     '<span class="badge bg-light text-dark border ms-1" style="font-size:0.62rem;">' + topic.volumen + ' publicaciones</span>' +
                     '</div>' +
                     '<div class="d-flex align-items-center gap-2">' +

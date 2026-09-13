@@ -458,6 +458,10 @@ class Metrics:
             for red in df_total['plataforma'].dropna().unique():
                 df_red  = df_total[df_total['plataforma'] == red].copy()
                 res_red = self._procesar_red(df_red)
+                if res_red.get('_n_posts_activos', 0) == 0:
+                    # Esta red no aporta ninguna mención activa a ningún pilar:
+                    # no mostrarla como si tuviera un resultado neutro real.
+                    continue
                 pesos_por_red[str(red)]      = res_red.pop('_pesos', {})
                 resultados_por_red[str(red)] = res_red
 

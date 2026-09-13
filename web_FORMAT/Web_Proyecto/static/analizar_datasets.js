@@ -2154,6 +2154,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             /* Poblar dropdown */
+            var totalTopicsVol = topicsFiltrados.reduce(function (s, t) { return s + (t.volumen || 0); }, 0) || 1;
+
+            /* Poblar dropdown */
             var sel = document.getElementById("lexV2TopicDropdownSelect");
             if (sel) {
                 sel.innerHTML = '<option value="">— Selecciona un subtema detectado —</option>';
@@ -2167,7 +2170,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                 sel.onchange = function () {
                     if (!this.value) {
-                        _renderTopicsDetail(topicsFiltrados, rawDataset.length || 1);
+                        _renderTopicsDetail(topicsFiltrados, totalTopicsVol);
                         _clearTopicPostsPanel();
                         return;
                     }
@@ -2176,7 +2179,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             sel.value.toLowerCase().trim();
                     });
                     if (found) {
-                        _renderTopicsDetail([found], rawDataset.length || 1);
+                        _renderTopicsDetail([found], totalTopicsVol);
                         _renderTopicPostsPanel(sel.value);
                     }
                 };
@@ -2222,7 +2225,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
 
-            _renderTopicsDetail(topicsFiltrados, rawDataset.length || 1);
+            _renderTopicsDetail(topicsFiltrados, totalTopicsVol);
             _clearTopicPostsPanel();
         }
         function _clearTopicPostsPanel() {
@@ -2293,7 +2296,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 var cat = pct !== null ? scoreopCategoria(pct) : null;
                 var sup = post.ScoreOP_sup != null ? parseFloat(post.ScoreOP_sup) : null;
                 var platColor = getPlatformColor(post.plataforma || "");
-                var stance = post.stance_post;
+                var stance = (post.stance_post !== undefined && post.stance_post !== null) ? post.stance_post : "--";
+                var topicAspecto = post.topic || "";
+                var valoracion = post.sentimiento_topic || "";
                 var stanceIcon = (stance === 1 || stance === "1") ? "bi-hand-thumbs-up text-success" :
                     (stance === -1 || stance === "-1") ? "bi-hand-thumbs-down text-danger" :
                         "bi-dash-circle text-muted";
@@ -2305,15 +2310,22 @@ document.addEventListener("DOMContentLoaded", () => {
                     (post.plataforma || "--") + '</span>' +
                     '<div class="d-flex gap-1 align-items-center">' +
                     (cat ? '<span class="badge px-1" style="' + scoreopBadgeStyle(pct) + ';font-size:.58rem;">' +
-                        pct.toFixed(1) + '%</span>' : '') +
-                    (sup != null ? '<span class="badge rounded-pill px-1 fw-normal" style="background:rgba(108,117,125,0.12);color:#555;font-size:.55rem;" title="Energía de la agenda">' +
-                        '<i class="bi bi-megaphone me-1"></i>' + sup.toFixed(1) + '</span>' : '') +
+                        cat.label + '</span>' : '') +
+                    (sup != null ? '<span class="badge rounded-pill px-1 fw-normal" style="background:rgba(108,117,125,0.12);color:#555;font-size:.55rem;" title="La Agenda indica la presencia o relevancia de este tema dentro de la conversación analizada."><i class="bi bi-megaphone me-1"></i>Agenda ' +
+                        sup.toFixed(1) + '</span>' : '') +
                     '</div></div>' +
+                    (topicAspecto || valoracion
+                        ? '<div class="mb-1 d-flex flex-column">' +
+                        (topicAspecto ? '<small class="text-muted fw-bold" style="font-size:.6rem;">Aspecto: ' + topicAspecto + '</small>' : '') +
+                        (valoracion ? '<small class="text-muted fw-bold" style="font-size:.6rem;">Valoración: ' + valoracion + '</small>' : '') +
+                        '</div>'
+                        : '') +
                     '<p class="mb-1 small text-dark" style="max-height:70px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;font-size:.73rem;">' +
                     (post.contenido_post || "Sin contenido") + '</p>' +
-                    '<div class="d-flex gap-3 mt-1" style="font-size:.6rem;color:#888;">' +
+                    '<div class="d-flex gap-3 mt-1 align-items-center" style="font-size:.6rem;color:#888;">' +
                     '<span><i class="bi bi-chat-dots me-1"></i>' + (post.num_comentarios || 0) + '</span>' +
-                    '<span><i class="bi ' + stanceIcon + ' me-1"></i>' + _stanceLabel(stance) + '</span>' +
+                    '<span><i class="bi ' + stanceIcon + ' me-1"></i>Postura del autor: ' + _stanceLabel(stance) + '</span>' +
+                    (pct !== null ? '<span class="ms-auto fw-bold" style="color:' + cat.color + ';" title="El ECHO score resume la orientación y repercusión social de la publicación y las respuestas asociadas.">ECHO score: ' + pct.toFixed(1) + '%</span>' : '') +
                     '</div></div>';
             });
             html += '</div>';

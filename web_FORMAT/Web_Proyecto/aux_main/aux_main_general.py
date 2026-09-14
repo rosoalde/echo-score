@@ -23,7 +23,8 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
 from bbdd.database import SessionLocal
-from bbdd.models_all import Analysis
+from bbdd.models_all import Analysis, TaskTypeEnum, TaskStatus
+from aux_main.task_service import TaskService
 from bbdd.response.user_response import UserResponse
 from seguridad.audit_service import AuditService, EventType, EventResult, ActorType
 
@@ -655,7 +656,23 @@ def aux_dashboard_data(db: Session, analysis_id_slug: str, current_user):
         datasets   = list(folder.glob("*_global_dataset.csv"))
         analizados = list(folder.glob("*_analizado.csv"))
         if datasets or analizados:
-            fase = "llm" if not analizados else "scoreop"
+            pendientes = [ds for ds in datasets if not ds.with_name(ds.stem + "_analizado.csv").exists()]
+            fase = "llm" if pendientes else "scoreop"
+
+            if pendientes:
+                tareas_activas = [
+                    t for t in TaskService.get_tasks_by_analysis(db, analysis.id)
+                    if t.task_type == TaskTypeEnum.ANALYSIS_LLM
+                    and t.status in (TaskStatus.PENDING, TaskStatus.QUEUED, TaskStatus.RUNNING)
+                ]
+                if not tareas_activas:
+                    from tasks import reanudar_analisis_pendiente_task
+                    nueva_tarea = TaskService.create_task(
+                        db=db, task_type=TaskTypeEnum.ANALYSIS_LLM,
+                        analysis_id=analysis.id, user_id=current_user.id,
+                    )
+                    reanudar_analisis_pendiente_task.delay(analysis.id, nueva_tarea.id)
+
             return JSONResponse({
                 "procesando": True,
                 "fase": fase,

@@ -659,7 +659,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="col-md-6">
                 <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
                     <h6 class="fw-bold small text-uppercase mb-3" style="color:#0a7c4a;">
-                        <i class="bi bi-arrow-up-circle-fill me-2"></i>Motores positivos
+                        <i class="bi bi-arrow-up-circle-fill me-2"></i>Motores de repercusión de apoyo
                         <span class="badge ms-1 fw-normal" style="background:#0a7c4a;font-size:.65rem;">ECHO score &gt; 60 %</span>
                     </h6>
                     <div id="topPostsContainer" style="max-height:420px;overflow-y:auto;"></div>
@@ -668,7 +668,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="col-md-6">
                 <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
                     <h6 class="fw-bold small text-uppercase mb-3" style="color:#d8535f;">
-                        <i class="bi bi-arrow-down-circle-fill me-2"></i>Motores negativos
+                        <i class="bi bi-arrow-down-circle-fill me-2"></i>Motores de repercusión de rechazo
                         <span class="badge ms-1 fw-normal" style="background:#d8535f;font-size:.65rem;">ECHO score &lt; 40 %</span>
                     </h6>
                     <div id="bottomPostsContainer" style="max-height:420px;overflow-y:auto;"></div>
@@ -865,8 +865,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
                                 <div class="mt-3 pt-2 border-top">
                                     <div class="d-flex justify-content-between extra-small mb-1" style="font-size:.65rem;">
-                                        <span class="text-success fw-bold">Motores positivos (&gt;60%): ${nPos} / ${total}</span>
-                                        <span class="text-danger fw-bold">Motores negativos (&lt;40%): ${nNeg} / ${total}</span>
+                                        <span class="text-success fw-bold">Motores con repercusión a favor(&gt;60%): ${nPos} / ${total}</span>
+                                        <span class="text-danger fw-bold">Motores con repercusión en contra (&lt;40%): ${nNeg} / ${total}</span>
                                     </div>
                                     <div class="progress rounded-pill" style="height:8px; background:#f0f0f0;">
                                         <div class="progress-bar bg-success" style="width:${pPosBar}%"></div>
@@ -874,9 +874,9 @@ document.addEventListener("DOMContentLoaded", () => {
                                         <div class="progress-bar bg-danger" style="width:${pNegBar}%"></div>
                                     </div>
                                     <div class="d-flex justify-content-between extra-small mt-1" style="font-size:.6rem;color:#888;">
-                                        <span>▲ ${pPosBar}% positivas</span>
+                                        <span>▲ ${pPosBar}% a favor</span>
                                         <span>● ${pNeuBar}% en equilibrio</span>
-                                        <span>▼ ${pNegBar}% negativas</span>
+                                        <span>▼ ${pNegBar}% en contra</span>
                                     </div>
                                 </div>
                             </div>
@@ -2283,7 +2283,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 '<small class="text-success fw-bold">👍 ' + nPositivas + '</small>' +
                 '<small class="text-muted fw-bold">➖ ' + nNeutras + '</small>' +
                 '<small class="text-danger fw-bold">👎 ' + nNegativas + '</small>' +
-                '<small class="text-muted">' + posts.length + ' publicaciones</small>' +
+                '<small class="text-muted">' + ' de ' + posts.length + ' publicaciones</small>' +
                 '</div></div>' +
                 '<p class="text-muted mb-3" style="font-size:.72rem;">' +
                 'Ordenadas por energía de agenda (mayor impacto e interacción primero).' +
@@ -2360,7 +2360,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     '<div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-1">' +
                     '<div class="d-flex align-items-center flex-wrap gap-1">' +
                     '<span class="fw-bold text-dark text-uppercase" style="font-size:0.72rem;">' + label + '</span>' +
-                    '<span class="badge bg-light text-dark border ms-1" style="font-size:0.62rem;">' + topic.volumen + ' publicaciones</span>' +
+                    '<span class="badge bg-light text-dark border ms-1" style="font-size:0.62rem;">' + topic.volumen + ' / ' + totalGlobal + '</span>' +
                     '</div>' +
                     '<div class="d-flex align-items-center gap-2">' +
                     '<small class="text-muted fw-bold" style="font-size:0.68rem;">' + pGlobal.toFixed(1) + '% del total</small>' +
@@ -2371,9 +2371,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     '<div class="progress-bar bg-secondary" style="width:' + pNeu.toFixed(1) + '%;opacity:0.6;"></div>' +
                     '<div class="progress-bar bg-danger" style="width:' + pNeg.toFixed(1) + '%"></div></div>' +
                     '<div class="d-flex justify-content-between mt-1" style="font-size:0.68rem;">' +
-                    '<span class="text-success fw-bold">▲ ' + pPos.toFixed(1) + '% (' + (topic.pos || 0) + ')</span>' +
-                    '<span class="text-muted fw-bold">● ' + pNeu.toFixed(1) + '% (' + (topic.neu || 0) + ')</span>' +
-                    '<span class="text-danger fw-bold">▼ ' + pNeg.toFixed(1) + '% (' + (topic.neg || 0) + ')</span></div>';
+                    '<span class="text-success fw-bold">▲ ' + pPos.toFixed(1) + '% (' + (topic.pos || 0) + ' / ' + topic.volumen + ')</span>' +
+                    '<span class="text-muted fw-bold">● ' + pNeu.toFixed(1) + '% (' + (topic.neu || 0) + ' / ' + topic.volumen + ')</span>' +
+                    '<span class="text-danger fw-bold">▼ ' + pNeg.toFixed(1) + '% (' + (topic.neg || 0) + ' / ' + topic.volumen + ')</span></div>';
                 container.appendChild(row);
             });
             container.querySelectorAll(".lex-ver-posts-btn").forEach(function (btn) {

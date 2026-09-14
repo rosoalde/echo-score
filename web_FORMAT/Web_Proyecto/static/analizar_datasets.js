@@ -626,7 +626,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     Para cada red social se muestra su <strong>ECHO Score</strong> y la distribución de las publicaciones según su repercusión:
                     <ul class="text-muted mb-2 ps-4" style="font-size:.75rem;"> 
                     <li><strong>Repercusión de posturas a favor / apoyo:</strong> ECHO Score superior al 60%.</li>
-                    <li><strong>Influencia neutra:</strong> ECHO Score entre el 40% y el 60%.</li>
+                    <li><strong>Repercusión equilibrada / polarizada:</strong> ECHO Score entre el 40% y el 60%.</li>
                     <li><strong>Repercusión de posturas en contra / rechazo:</strong> ECHO Score inferior al 40%.</li>
                     </ul>
                 </p>
@@ -647,8 +647,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 Las publicaciones se clasifican según la repercusión de sus posturas:
             </p>
             <ul class="text-muted mb-2 ps-4" style="font-size:.75rem;"> 
-                <li><strong>Repercusión a favor:</strong> ECHO Score superior al 60%.</li>
-                <li><strong>Repercusión en contra:</strong> ECHO Score inferior al 40%.</li>
+                <li><strong>Repercusión de posturas a favor / apoyo:</strong> ECHO Score superior al 60%.</li>
+                <li><strong>Repercusión de posturas en contra / rechazo:</strong> ECHO Score inferior al 40%.</li>
+
             </ul>
             <p class="text-muted mb-0" style="font-size:.75rem;">
                 Dentro de cada grupo, se ordenan primero por su <strong>ECHO Score</strong> y después por el alcance y la interacción generada.
@@ -865,8 +866,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
                                 <div class="mt-3 pt-2 border-top">
                                     <div class="d-flex justify-content-between extra-small mb-1" style="font-size:.65rem;">
-                                        <span class="text-success fw-bold">Motores con repercusión a favor(&gt;60%): ${nPos} / ${total}</span>
-                                        <span class="text-danger fw-bold">Motores con repercusión en contra (&lt;40%): ${nNeg} / ${total}</span>
+                                        <span class="text-success fw-bold">Motores de repercusión de apoyo (&gt;60%): ${nPos} / ${total}</span>
+                                        <span class="text-danger fw-bold">Motores de repercusión de rechazo (&lt;40%): ${nNeg} / ${total}</span>
                                     </div>
                                     <div class="progress rounded-pill" style="height:8px; background:#f0f0f0;">
                                         <div class="progress-bar bg-success" style="width:${pPosBar}%"></div>
@@ -1745,9 +1746,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 '<div class="progress-bar bg-secondary" style="width:' + (neu / total * 100).toFixed(0) + '%;opacity:.55;"></div>' +
                 '<div class="progress-bar bg-danger" style="width:' + (neg / total * 100).toFixed(0) + '%"></div></div>' +
                 '<div class="d-flex justify-content-between" style="font-size:.65rem;">' +
-                '<span class="text-success fw-bold">▲ ' + pos + ' a favor (' + (pos / total * 100).toFixed(0) + '%)</span>' +
-                '<span class="text-muted">● ' + neu + ' neutro</span>' +
-                '<span class="text-danger fw-bold">▼ ' + neg + ' en contra (' + (neg / total * 100).toFixed(0) + '%)</span></div>' +
+                '<span class="text-success fw-bold">▲ ' + (pos / total * 100).toFixed(0) + '%  (' + pos + ' / ' + total + ')' + ' a favor </span>' +
+                '<span class="text-muted">● ' + (neu / total * 100).toFixed(0) + '%  (' + neu + ' / ' + total + ')' + ' neutrales </span>' +
+                '<span class="text-danger fw-bold">▼ ' + (neg / total * 100).toFixed(0) + '%  (' + neg + ' / ' + total + ')' + ' en contra </span></div>' +
+
+
                 '<p class="text-muted mb-0 mt-1" style="font-size:.65rem;line-height:1.2;">' +
                 // (DEFINICIONES_PILARES[p] || "") + '</p>' +
                 '</div></div>';
@@ -1789,7 +1792,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // ── Distribución por pilar ────────────────────────────────
                 '<h6 class="fw-bold small text-uppercase mb-2 border-bottom pb-1">' +
-                '<i class="bi bi-pie-chart me-1 text-warning"></i>Distribución de posiciones por pilar</h6>' +
+                '<i class="bi bi-pie-chart me-1 text-warning"></i>Distribución de posturas por pilar</h6>' +
                 '<p class="text-muted small mb-3" style="font-size:.75rem;">' +
                 'Muestra cuántas menciones (posts y comentarios) tomaron posición a favor, neutra o en contra para cada pilar.' +
                 '</p>' +

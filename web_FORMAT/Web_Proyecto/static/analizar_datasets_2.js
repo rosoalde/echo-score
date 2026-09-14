@@ -50,11 +50,11 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     function scoreopCategoria(pct) {
-        if (pct > 80) return { label: "Repercusión muy positiva", color: SCOREOP_COLORS.muy_positivo, textColor: "#fff" };
-        if (pct >= 60) return { label: "Repercusión positiva", color: SCOREOP_COLORS.positivo, textColor: "#fff" };
+        if (pct > 80) return { label: "Repercusión a favor muy alta", color: SCOREOP_COLORS.muy_positivo, textColor: "#fff" };
+        if (pct >= 60) return { label: "Repercusión a favor", color: SCOREOP_COLORS.positivo, textColor: "#fff" };
         if (pct >= 40) return { label: "Repercusión equilibrada / polarizada", color: SCOREOP_COLORS.neutro, textColor: "#333" };
-        if (pct >= 20) return { label: "Repercusión negativa", color: SCOREOP_COLORS.negativo, textColor: "#6b1e1e" };
-        return { label: "Repercusión muy negativa", color: SCOREOP_COLORS.muy_negativo, textColor: "#fff" };
+        if (pct >= 20) return { label: "Repercusión en contra", color: SCOREOP_COLORS.negativo, textColor: "#6b1e1e" };
+        return { label: "Repercusión en contra muy alta", color: SCOREOP_COLORS.muy_negativo, textColor: "#fff" };
     }
 
     function scoreopBadgeStyle(pct) {

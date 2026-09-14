@@ -3264,7 +3264,7 @@ def build_analysis_pdf(
             story.append(combo_kpi)
             story.append(Spacer(1, 0.4*cm))
 
-            story.append(Paragraph("5.7 Distribución de posiciones por pilar", ST["subsection"]))
+            story.append(Paragraph("5.7 Distribución de posturas por pilar", ST["subsection"]))
             story.append(Paragraph(
                 "La siguiente tabla muestra, para cada pilar, cuántas publicaciones tomaron postura "
                 "a favor, de forma neutra o en contra. Solo se contabilizan publicaciones que mencionan "

@@ -660,17 +660,23 @@ def aux_dashboard_data(db: Session, analysis_id_slug: str, current_user):
             fase = "llm" if pendientes else "scoreop"
 
             if pendientes:
+                todas_tareas = TaskService.get_tasks_by_analysis(db, analysis.id)
                 tareas_activas = [
-                    t for t in TaskService.get_tasks_by_analysis(db, analysis.id)
+                    t for t in todas_tareas
                     if t.status in (TaskStatus.PENDING, TaskStatus.QUEUED, TaskStatus.RUNNING)
                 ]
+                print(f"🔍 [reanudación] analysis_id={analysis.id} tareas_totales={[(t.id, t.task_type, t.status) for t in todas_tareas]}")
                 if not tareas_activas:
                     from tasks import reanudar_analisis_pendiente_task
                     nueva_tarea = TaskService.create_task(
                         db=db, task_type=TaskTypeEnum.ANALYSIS_LLM,
                         analysis_id=analysis.id, user_id=current_user.id,
                     )
-                    reanudar_analisis_pendiente_task.delay(analysis.id, nueva_tarea.id)
+                    print(f"🚀 [reanudación] despachando task_id={nueva_tarea.id} para analysis_id={analysis.id}")
+                    celery_res = reanudar_analisis_pendiente_task.delay(analysis.id, nueva_tarea.id)
+                    print(f"🚀 [reanudación] celery_task_id={celery_res.id}")
+                else:
+                    print(f"⏸️ [reanudación] ya hay tarea activa, no se despacha: {[(t.id, t.status) for t in tareas_activas]}")
 
             return JSONResponse({
                 "procesando": True,

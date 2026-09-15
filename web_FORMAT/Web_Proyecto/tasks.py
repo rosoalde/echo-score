@@ -59,6 +59,7 @@ def ejecutar_analisis_task(self, data: dict, analysis_id:int=None, task_id: int 
         raise
     finally:
         db.close()
+@celery_app.task(bind=True)
 def reanudar_analisis_pendiente_task(self, analysis_id: int, task_id: int):
     """Reanuda un análisis interrumpido: LLM pendiente → ScoreOP → dashboard_data.json."""
     db = SessionLocal()

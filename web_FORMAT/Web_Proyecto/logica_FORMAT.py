@@ -1841,17 +1841,17 @@ async def backend_analisis(db: Session, data, analysis_id, task_id):
         print(f"❌ Error reporting: {e}")
         _set_progress(task_id, db, "reporte_error", f"Aviso: error ({e})", 88, error=True)
 
-    # ── WORD CLOUDS ───────────────────────────────────────────────────
-    _set_progress(task_id, db, "nubes", "Generando nubes…", 90)
-    try:
-        asegurar_nubes_dashboard(
-            Path(u_conf.general["output_folder"]),
-            keywords=u_conf.general.get("keywords", [])
-        )
-        _set_progress(task_id, db, "nubes_ok", "Nubes OK ✓", 95)
-    except Exception as e:
-        print(f"❌ Error nubes: {e}")
-        _set_progress(task_id, db, "nubes_error", f"Aviso: error ({e})", 95, error=True)
+    # # ── WORD CLOUDS ───────────────────────────────────────────────────
+    # _set_progress(task_id, db, "nubes", "Generando nubes…", 90)
+    # try:
+    #     asegurar_nubes_dashboard(
+    #         Path(u_conf.general["output_folder"]),
+    #         keywords=u_conf.general.get("keywords", [])
+    #     )
+    #     _set_progress(task_id, db, "nubes_ok", "Nubes OK ✓", 95)
+    # except Exception as e:
+    #     print(f"❌ Error nubes: {e}")
+    #     _set_progress(task_id, db, "nubes_error", f"Aviso: error ({e})", 95, error=True)
 
     # ── FINALIZE ───────────────────────────────────────────────────────
     try:

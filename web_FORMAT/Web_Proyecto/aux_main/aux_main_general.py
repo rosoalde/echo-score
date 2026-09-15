@@ -644,12 +644,12 @@ def aux_dashboard_data(db: Session, analysis_id_slug: str, current_user):
     csv_path  = folder / "scoreop_consolidado.csv"
     json_path = folder / "dashboard_data.json"
 
-    # 2. Asegurar nubes (lazy generation)
-    try:
-        kws_nubes = _extract_keywords_from_analysis(analysis)
-        asegurar_nubes_dashboard(folder, keywords=kws_nubes)
-    except Exception as e:
-        print(f"⚠️ Error asegurando nubes: {e}")
+    # # 2. Asegurar nubes (lazy generation)
+    # try:
+    #     kws_nubes = _extract_keywords_from_analysis(analysis)
+    #     asegurar_nubes_dashboard(folder, keywords=kws_nubes)
+    # except Exception as e:
+    #     print(f"⚠️ Error asegurando nubes: {e}")
 
     # 3. Si no existe el CSV de ScoreOP → pipeline incompleto
     if not csv_path.exists():
@@ -662,8 +662,7 @@ def aux_dashboard_data(db: Session, analysis_id_slug: str, current_user):
             if pendientes:
                 tareas_activas = [
                     t for t in TaskService.get_tasks_by_analysis(db, analysis.id)
-                    if t.task_type == TaskTypeEnum.ANALYSIS_LLM
-                    and t.status in (TaskStatus.PENDING, TaskStatus.QUEUED, TaskStatus.RUNNING)
+                    if t.status in (TaskStatus.PENDING, TaskStatus.QUEUED, TaskStatus.RUNNING)
                 ]
                 if not tareas_activas:
                     from tasks import reanudar_analisis_pendiente_task

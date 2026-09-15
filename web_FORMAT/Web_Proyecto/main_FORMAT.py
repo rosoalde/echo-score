@@ -522,6 +522,32 @@ async def stream_progreso(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.post("/analisis/{analysis_id_slug}/reanudar")
+async def reanudar_analisis_endpoint(analysis_id_slug: str, request: Request,
+                                      db: Session = Depends(get_db),
+                                      current_user=Depends(get_current_user)):
+    analysis = db.query(Analysis).filter(
+        Analysis.slug == analysis_id_slug, Analysis.user_id == current_user.id
+    ).first()
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Análisis no encontrado")
+
+    tareas_activas = [
+        t for t in TaskService.get_tasks_by_analysis(db, analysis.id)
+        if t.status in (TaskStatus.PENDING, TaskStatus.QUEUED, TaskStatus.RUNNING)
+    ]
+    if tareas_activas:
+        return {"status": "ya_en_curso"}
+
+    from tasks import reanudar_analisis_pendiente_task
+    nueva_tarea = TaskService.create_task(
+        db=db, task_type=TaskTypeEnum.ANALYSIS_LLM,
+        analysis_id=analysis.id, user_id=current_user.id,
+    )
+    reanudar_analisis_pendiente_task.delay(analysis.id, nueva_tarea.id)
+    return {"status": "reanudando", "task_id": nueva_tarea.id}
+
 #======================================================================================================
 # function -> detener_analisis
 #   Objetivo:   Se encarga de detener en análisis basándose en la id de la BBDD del análisis.

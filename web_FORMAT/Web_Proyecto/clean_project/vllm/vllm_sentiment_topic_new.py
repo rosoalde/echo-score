@@ -823,6 +823,33 @@ def call_vllm_worker(contexto, system_prompt, user_template):
     
     return _fila_vacia("fallo tras reintentos")
 
+def contar_filas_pendientes(csv_path: Path) -> tuple[int, int]:
+    """Cuenta filas sin analizar en un _global_dataset.csv o _analizado.csv.
+    Devuelve (pendientes, total). Reutilizado por llm_analysis y por la
+    detección de reanudación en logica_FORMAT.py — no duplicar esta máscara."""
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            sep = ';' if ';' in f.readline() else ','
+        df = pd.read_csv(csv_path, sep=sep, encoding='utf-8', engine='python', on_bad_lines='skip')
+        if 'contenido' in df.columns:
+            df = df.dropna(subset=['contenido'])
+            df = df[df['contenido'].astype(str).str.strip() != ""]
+        for col in ("topic_llm", "postura", "pertinencia"):
+            if col not in df.columns:
+                df[col] = ""
+            df[col] = df[col].fillna("").astype(str).str.strip()
+        mask_pendiente = (
+            (df["topic_llm"] == "") | (df["topic_llm"] == "nan") |
+            (df["postura"] == "") | (df["postura"] == "nan") |
+            (df["pertinencia"] == "") | (df["pertinencia"] == "nan")
+        )
+        if "relevancia_ia" in df.columns:
+            mask_pendiente = mask_pendiente & (df["relevancia_ia"] == "SI")
+        return int(mask_pendiente.sum()), len(df)
+    except Exception as e:
+        print(f"⚠️ No se pudo evaluar pendientes en {csv_path.name}: {e}")
+        return -1, 0
+
 # =====================================================
 # PIPELINE PRINCIPAL
 # =====================================================
@@ -902,17 +929,16 @@ def llm_analysis(u_conf):
                 df[col] = ""
             df[col] = df[col].fillna("").astype(str).str.strip()
         
-        # Identificar pendientes
+        
+        # Identificar pendientes (misma máscara que contar_filas_pendientes)
         mask_pendiente = (
             (df["topic_llm"] == "") | (df["topic_llm"] == "nan") |
             (df["postura"] == "") | (df["postura"] == "nan") |
             (df["pertinencia"] == "") | (df["pertinencia"] == "nan")
         )
-        
-        # FILTRO ADICIONAL: Solo analizar contenido RELEVANTE según LLM previo
         if "relevancia_ia" in df.columns:
             mask_pendiente = mask_pendiente & (df["relevancia_ia"] == "SI")
-        
+
         indices_pendientes = df[mask_pendiente].index.tolist()
         total = len(df)
         pendientes = len(indices_pendientes)

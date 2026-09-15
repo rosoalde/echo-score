@@ -656,32 +656,29 @@ def aux_dashboard_data(db: Session, analysis_id_slug: str, current_user):
         datasets   = list(folder.glob("*_global_dataset.csv"))
         analizados = list(folder.glob("*_analizado.csv"))
         if datasets or analizados:
-            pendientes = [ds for ds in datasets if not ds.with_name(ds.stem + "_analizado.csv").exists()]
-            fase = "llm" if pendientes else "scoreop"
+            from clean_project.vllm.vllm_sentiment_topic_new import contar_filas_pendientes
+            hay_filas_pendientes = False
+            for ds in datasets:
+                analizado = ds.with_name(ds.stem + "_analizado.csv")
+                if not analizado.exists():
+                    hay_filas_pendientes = True
+                    continue
+                n_pend, _ = contar_filas_pendientes(analizado)
+                if n_pend != 0:
+                    hay_filas_pendientes = True
 
-            if pendientes:
-                todas_tareas = TaskService.get_tasks_by_analysis(db, analysis.id)
-                tareas_activas = [
-                    t for t in todas_tareas
-                    if t.status in (TaskStatus.PENDING, TaskStatus.QUEUED, TaskStatus.RUNNING)
-                ]
-                print(f"🔍 [reanudación] analysis_id={analysis.id} tareas_totales={[(t.id, t.task_type, t.status) for t in todas_tareas]}")
-                if not tareas_activas:
-                    from tasks import reanudar_analisis_pendiente_task
-                    nueva_tarea = TaskService.create_task(
-                        db=db, task_type=TaskTypeEnum.ANALYSIS_LLM,
-                        analysis_id=analysis.id, user_id=current_user.id,
-                    )
-                    print(f"🚀 [reanudación] despachando task_id={nueva_tarea.id} para analysis_id={analysis.id}")
-                    celery_res = reanudar_analisis_pendiente_task.delay(analysis.id, nueva_tarea.id)
-                    print(f"🚀 [reanudación] celery_task_id={celery_res.id}")
-                else:
-                    print(f"⏸️ [reanudación] ya hay tarea activa, no se despacha: {[(t.id, t.status) for t in tareas_activas]}")
+            todas_tareas = TaskService.get_tasks_by_analysis(db, analysis.id)
+            hay_tarea_activa = any(
+                t.status in (TaskStatus.PENDING, TaskStatus.QUEUED, TaskStatus.RUNNING)
+                for t in todas_tareas
+            )
+            fase = "llm" if hay_filas_pendientes else "scoreop"
 
             return JSONResponse({
                 "procesando": True,
                 "fase": fase,
-                "mensaje": "Completando análisis automáticamente…",
+                "puede_reanudar": hay_filas_pendientes and not hay_tarea_activa,
+                "mensaje": "Análisis en curso." if hay_tarea_activa else "Análisis incompleto.",
             }, status_code=202)
         return JSONResponse({"error": "No hay datos disponibles. Ejecuta el análisis primero."}, status_code=404)
 

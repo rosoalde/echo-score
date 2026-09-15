@@ -1634,17 +1634,24 @@ def relanzar_llm_si_pendiente(u_conf):
         print("⚠️ No hay _global_dataset.csv. Nada que relanzar.")
         return False
 
+    from clean_project.vllm.vllm_sentiment_topic_new import contar_filas_pendientes
+
     pendientes    = []
     ya_procesados = []
     for ds in datasets:
         analizado = ds.with_name(ds.stem + "_analizado.csv")
-        if analizado.exists():
+        if not analizado.exists():
+            pendientes.append(ds)
+            continue
+        n_pend, n_total = contar_filas_pendientes(analizado)
+        if n_pend == 0:
             ya_procesados.append(ds)
         else:
+            print(f"🔁 {analizado.name}: {n_pend}/{n_total} filas sin analizar todavía.")
             pendientes.append(ds)
 
     if not pendientes:
-        print("✅ Todos los datasets ya tienen su _analizado.csv. No se relanza el LLM.")
+        print("✅ Todos los datasets ya tienen su _analizado.csv completo. No se relanza el LLM.")
         return False
 
     print(f"🔁 Datasets pendientes: {[p.name for p in pendientes]}")

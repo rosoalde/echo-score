@@ -4,7 +4,7 @@ import time
 import re
 import json
 import concurrent.futures
-from openai import OpenAI
+from openai import OpenAI, APIConnectionError
 from types import SimpleNamespace
 import os
 import base64
@@ -34,6 +34,7 @@ client = OpenAI(
     base_url="http://host.docker.internal:8001/v1",
     api_key="local-token",
     timeout=TIMEOUT_LLM,
+    max_retries=0,
 )
 
 # # MODELO MULTIMODAL para análisis con imágenes
@@ -817,6 +818,21 @@ def call_vllm_worker(contexto, system_prompt, user_template):
             
             return resultado
             
+        except APIConnectionError as e:
+            # Modelo/vLLM caído: no es un fallo de la fila, es que el
+            # servicio no responde. No la marcamos como analizada con un
+            # placeholder — esperamos a que vuelva y reintentamos esta
+            # misma fila.
+            print(f"⏸️ Modelo vLLM no disponible ({e}); esperando a que vuelva…")
+            while True:
+                time.sleep(10)
+                try:
+                    client.models.list(timeout=5)
+                    break
+                except APIConnectionError:
+                    continue
+            print("▶️ Modelo disponible de nuevo, reintentando fila…")
+            return call_vllm_worker(contexto, system_prompt, user_template)
         except Exception as e:
             print(f"⚠️ Error en intento {intento + 1}: {e}")
             time.sleep(1)

@@ -545,7 +545,9 @@ async def reanudar_analisis_endpoint(analysis_id_slug: str, request: Request,
         db=db, task_type=TaskTypeEnum.ANALYSIS_LLM,
         analysis_id=analysis.id, user_id=current_user.id,
     )
-    reanudar_analisis_pendiente_task.delay(analysis.id, nueva_tarea.id)
+    celery_task = reanudar_analisis_pendiente_task.delay(analysis.id, nueva_tarea.id)
+    nueva_tarea.celery_task_id = celery_task.id
+    db.commit()
     return {"status": "reanudando", "task_id": nueva_tarea.id}
 
 #======================================================================================================

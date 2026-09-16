@@ -3300,34 +3300,92 @@ document.addEventListener("DOMContentLoaded", () => {
                     var sup = post.ScoreOP_sup != null ? parseFloat(post.ScoreOP_sup) : null;
                     var platColor = getPlatformColor(post.plataforma || "");
                     var stance = post.stance_post;
+                    var topicAspecto = post.topic || "";
+                    var valoracion = post.sentimiento_topic || "";
                     var stanceIcon = (stance === 1 || stance === "1") ? "bi-hand-thumbs-up text-success" :
                         (stance === -1 || stance === "-1") ? "bi-hand-thumbs-down text-danger" :
                             "bi-dash-circle text-muted";
                     html +=
                         '<div class="border rounded-3 p-2 mb-2 bg-white shadow-sm">' +
                         '<div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-1">' +
-                        '<span class="badge rounded-pill" style="background:' + platColor + ';font-size:.55rem;">' +
-                        (post.plataforma || "--") + '</span>' +
-                        (cat ? '<span class="badge px-1" style="' + scoreopBadgeStyle(pct) + ';font-size:.55rem;">' +
-                            pct.toFixed(1) + '%</span>' : '') +
-                        (sup != null ? '<span class="badge rounded-pill px-1 fw-normal" style="background:rgba(108,117,125,0.12);color:#555;font-size:.52rem;">' +
-                            '<i class="bi bi-megaphone me-1"></i>' + sup.toFixed(1) + '</span>' : '') +
+                        '<span class="badge rounded-pill" style="background:' + platColor + ';font-size:.58rem;">' +
+                        (post.plataforma || "--") +
+                        '</span>' +
+
+                        '<div class="d-flex gap-1 align-items-center">' +
+                        (cat ?
+                            '<span class="badge px-1" style="' + scoreopBadgeStyle(pct) + ';font-size:.58rem;">' +
+                            cat.label +
+                            '</span>'
+                            : '') +
+
+                        (sup != null ?
+                            '<span class="badge rounded-pill px-1 fw-normal" ' +
+                            'style="background:rgba(108,117,125,0.12);color:#555;font-size:.55rem;" ' +
+                            'title="La Agenda indica la presencia o relevancia de este tema dentro de la conversación analizada.">' +
+                            '<i class="bi bi-megaphone me-1"></i>Agenda ' +
+                            sup.toFixed(1) +
+                            '</span>'
+                            : '') +
                         '</div>' +
-                        '<p class="mb-1 small text-dark" style="max-height:60px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;font-size:.7rem;">' +
-                        (post.contenido_post || "Sin contenido") + '</p>' +
-                        '<div class="d-flex gap-2" style="font-size:.58rem;color:#888;">' +
-                        '<span><i class="bi bi-chat-dots me-1"></i>' + (post.num_comentarios || 0) + '</span>' +
-                        '<span><i class="bi ' + stanceIcon + ' me-1"></i>' + _stanceLabel(stance) + '</span>' +
-                        '</div></div>';
+                        '</div>' +
+
+                        (topicAspecto || valoracion ?
+                            '<div class="mb-1 d-flex flex-column">' +
+                            (topicAspecto ?
+                                '<small class="text-muted fw-bold" style="font-size:.6rem;">' +
+                                'Aspecto: ' + topicAspecto +
+                                '</small>'
+                                : '') +
+
+                            (valoracion ?
+                                '<small class="text-muted fw-bold" style="font-size:.6rem;">' +
+                                'Valoración: ' + valoracion +
+                                '</small>'
+                                : '') +
+                            '</div>'
+                            : '') +
+
+                        '<p class="mb-1 small text-dark" ' +
+                        'style="max-height:70px;overflow-y:auto;white-space:pre-wrap;' +
+                        'word-break:break-word;font-size:.73rem;">' +
+                        (post.contenido_post || "Sin contenido") +
+                        '</p>' +
+
+                        '<div class="d-flex gap-3 mt-1 align-items-center" ' +
+                        'style="font-size:.6rem;color:#888;">' +
+
+                        '<span>' +
+                        '<i class="bi bi-chat-dots me-1"></i>' +
+                        (post.num_comentarios || 0) +
+                        '</span>' +
+
+                        '<span>' +
+                        'Postura del autor: ' +
+                        _stanceLabel(stance) +
+                        '</span>' +
+
+                        (pct !== null ?
+                            '<span class="ms-auto fw-bold" ' +
+                            'style="color:' + cat.color + ';" ' +
+                            'title="El ECHO score resume la orientación y repercusión social de la publicación y las respuestas asociadas.">' +
+                            'ECHO score: ' + pct.toFixed(1) + '%' +
+                            '</span>'
+                            : '') +
+
+                        '</div>' +
+                        '</div>';
                 });
-                html += '</div>';
-            }
 
-            panel.innerHTML = html;
+                panel.innerHTML = html;
 
-            var backBtn = document.getElementById("lexV2SideBack");
-            if (backBtn) {
-                backBtn.addEventListener("click", function () { _renderSideConnectedList(backNode); });
+                var backBtn = document.getElementById("lexV2SideBack");
+                if (backBtn) {
+                    backBtn.addEventListener("click", function () {
+                        _renderSideConnectedList(backNode);
+
+                    });
+                }
             }
         }
 

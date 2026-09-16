@@ -72,6 +72,8 @@ async def _get_karma(author) -> int:
 async def verificar_relevancia_vlm_reddit(post, b64_images, u_conf):
     keywords_str = ", ".join(u_conf.general["keywords"])
     subreddit_name = post.subreddit.display_name
+    idiomas_conf = u_conf.languages
+    idioma = ", ".join(idiomas_conf) if idiomas_conf else "Cualquiera"
 
     geo_instruction = ""
     if "GLOBAL" in u_conf.population_scope.upper():
@@ -95,6 +97,7 @@ async def verificar_relevancia_vlm_reddit(post, b64_images, u_conf):
     TEMA: {u_conf.tema}
     CONTEXTO: {u_conf.desc_tema}
     KEYWORDS: {keywords_str}
+    IDIOMAS ACEPTADOS: {idioma}
 
     DATOS DE ENTRADA:
     - Subreddit: r/{subreddit_name}
@@ -102,12 +105,12 @@ async def verificar_relevancia_vlm_reddit(post, b64_images, u_conf):
     - Texto: {post.selftext[:500]}
 
     REGLAS:
-    1. Herencia de Contexto: Si el subreddit es conocido por tratar temas relacionados con {u_conf.tema} o el contexto, eso sugiere relevancia.
-    2. Prioridad semántica: Si trata sobre el tema o términos relacionados -> RELEVANTE.
-    3. Imagen: Úsala para confirmar el contexto si el texto es breve.
-    4. Geografía: {geo_instruction}
-    5. Si no se puede inferir ubicación marcar como RELEVANTE, no descartar por defecto.
-    6. En caso de duda, marcar como RELEVANTE para no perder datos potenciales.
+    1. Marca NO relevante si "{u_conf.tema}" NO es el foco del texto (teniendo en cuenta el contexto), aunque se mencione de forma secundaria o contextual.
+    2. Imagen: Úsala para confirmar el contexto si el texto es breve.
+    3. Geografía: {geo_instruction}
+    4. Marca NO relevante si es spam/publicidad sin relación con "{u_conf.tema}"
+    5. NO descartes noticias o citas que sí traten "{u_conf.tema}" como asunto principal.
+    6. Marca NO relevante si el idioma del post no está en dentro de los idiomas aceptados: {idioma}.
 
     Responde en JSON: {{"relevante": true/false, "razon_relevancia": "...", "idioma": "...", "idioma_justificacion": "..."}}
     """

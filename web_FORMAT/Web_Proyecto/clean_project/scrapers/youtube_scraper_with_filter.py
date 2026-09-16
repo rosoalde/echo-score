@@ -122,6 +122,8 @@ def verificar_relevancia_vlm(detalles, transcripcion, b64_image, u_conf):
         geo_instruction += f" (Para temas hiperlocales la precisión importa más que el recall.)"
         geo_instruction += f"(ej: r/uruguay y buscas España), marca NO RELEVANTE."
     keywords_str = ", ".join(u_conf.general["keywords"])
+    idiomas_conf = u_conf.languages
+    idioma = ", ".join(idiomas_conf) if idiomas_conf else "Cualquiera"
     """
     IA con jerarquía de evidencia: El texto manda sobre la imagen.
     """
@@ -141,13 +143,16 @@ def verificar_relevancia_vlm(detalles, transcripcion, b64_image, u_conf):
     ÁMBITO GEOGRÁFICO (REFERENCIA, NO RESTRICTIVO):
     {u_conf.population_scope}
 
+    IDIOMAS ACEPTADOS: 
+    {idioma}
+
     -------------------------
     REGLAS DE DECISIÓN
     -------------------------
 
     1. PRIORIDAD ABSOLUTA: SEMÁNTICA
-    Si el título contiene términos clave del TEMA OBJETIVO → RELEVANTE.
-    Si el contenido describe términos cercanos o relacionados semánticamente → RELEVANTE.
+    Si el título trata "{u_conf.tema}" como asunto principal  → RELEVANTE.
+    Si el contenido trata "{u_conf.tema}" como asunto principal → RELEVANTE.
 
     {geo_instruction}
 
@@ -160,9 +165,9 @@ def verificar_relevancia_vlm(detalles, transcripcion, b64_image, u_conf):
 
     5. CASOS DE DESCARTE
     Solo marcar NO relevante si:
-    - trata de otro tema completamente distinto
-    - o de otra ubicación sin relación clara
-
+    - "{u_conf.tema}" NO es el foco del video, aunque se mencione de forma secundaria o contextual.
+    - Marca NO relevante si es spam/publicidad sin relación con "{u_conf.tema}"
+    - Marca NO relevante si el idioma del Título y/o la descripción del video no están en los idiomas aceptados: {idioma}.
     -------------------------
     DATOS
     -------------------------

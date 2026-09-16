@@ -171,6 +171,9 @@ def _cargar_canal(canal: str) -> tuple[list, dict]:
 
 async def verificar_relevancia_telegram(contenido: str, canal: str, u_conf) -> tuple[bool, str, str]:
     keywords_str = ", ".join(u_conf.general["keywords"])
+    idiomas_conf = u_conf.languages
+    idioma = ", ".join(idiomas_conf) if idiomas_conf else "Cualquiera"
+    
 
     geo_instruction = ""
     if "GLOBAL" in u_conf.population_scope.upper():
@@ -188,16 +191,19 @@ TEMA: {u_conf.tema}
 CONTEXTO: {getattr(u_conf, "desc_tema", "")}
 KEYWORDS RELACIONADAS: {keywords_str}
 UBICACIÓN OBJETIVO: {u_conf.population_scope}
+IDIOMAS ACEPTADOS: {idioma}
 
 DATOS DEL MENSAJE:
 - Canal: {canal}
 - Texto: {contenido[:800]}
 
 REGLAS:
-1. Prioridad semántica: si el texto trata sobre el tema o las keywords -> RELEVANTE.
+1. Marca NO relevante si "{u_conf.tema}" NO es el foco del texto, aunque se mencione de forma secundaria o contextual.
 2. Geografía: {geo_instruction}
 3. Si no se puede inferir ubicación, marcar como RELEVANTE (no descartar por defecto).
 4. En caso de duda, marcar como RELEVANTE para no perder datos potenciales.
+5. Marca NO relevante si es spam/publicidad sin relación con "{u_conf.tema}"
+6. Marca NO relevante si el idioma del mensaje no está en los idiomas aceptados: {idioma}.
 
 Responde en JSON: {{"relevante": true/false, "razon_relevancia": "...", "idioma": "...", "idioma_justificacion": "..."}}
 """

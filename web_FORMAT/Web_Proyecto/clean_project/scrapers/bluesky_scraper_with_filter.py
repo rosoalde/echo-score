@@ -174,6 +174,8 @@ async def verificar_relevancia_vlm(post_data, b64_image, u_conf):
     keywords_str = ", ".join(u_conf.general["keywords"])
     text = post_data.get("record", {}).get("text", "")
     author = post_data.get("author", {}).get("displayName", "Usuario")
+    idiomas_conf = u_conf.languages
+    idioma = ", ".join(idiomas_conf) if idiomas_conf else "Cualquiera"
 
     geo_instruction = ""
     if "GLOBAL" in u_conf.population_scope.upper():
@@ -198,17 +200,20 @@ async def verificar_relevancia_vlm(post_data, b64_image, u_conf):
     CONTEXTO PARA CONTEXTUALIZAR EL TEMA: {u_conf.desc_tema}
     KEYWORDS RELACIONADAS CON EL TEMA: {keywords_str}
     UBICACIÓN OBJETIVO: {u_conf.population_scope}
+    IDIOMAS ACEPTADOS: {idioma}
 
     DATOS DEL POST:
     - Autor: {author}
     - Texto: {text}
 
     REGLAS:
-    1. Prioridad semántica: Si el texto trata sobre el tema o tiene términos relacionados con el tema o el contexto o las keywords relacionadas -> RELEVANTE.
+    1. Marca NO relevante si "{u_conf.tema}" NO es el foco del texto, aunque se mencione de forma secundaria o contextual.
     2. Imagen: Úsala solo si el texto es ambiguo.
-    3. Geografía: {geo_instruction}
-    4. Si no se puede inferir ubicación marcar como RELEVANTE, no descartar por defecto.
-    5. En caso de duda, marcar como RELEVANTE para no perder datos potenciales.
+    3. Marca NO relevante si es spam/publicidad sin relación con "{u_conf.tema}"
+    4. Geografía: {geo_instruction}
+    5. Si no se puede inferir ubicación marcar como RELEVANTE, no descartar por defecto.
+    6. NO descartes noticias o citas que sí traten "{u_conf.tema}" como asunto principal.
+    7. Marca NO relevante si el idioma del post no está en dentro de los idiomas aceptados: {idioma}.
 
     Responde en JSON: {{"relevante": true/false, "razon_relevancia": "...", "idioma": "...", "idioma_justificacion": "..."}}
     """

@@ -1295,7 +1295,35 @@ def _pilares_pendientes(folder_path: Path) -> list:
  
     return pendientes
 
+def _dataset_tiene_pendientes_llm(archivo_analizado: Path) -> bool:
+    """True si el _analizado.csv existe pero aún tiene filas relevantes sin
+    topic_llm/postura/pertinencia (mismo criterio que mask_pendiente en
+    vllm_sentiment_topic_new.py)."""
+    try:
+        with open(archivo_analizado, "r", encoding="utf-8") as f:
+            sep = ";" if ";" in f.readline() else ","
+        df = pd.read_csv(archivo_analizado, sep=sep, encoding="utf-8", on_bad_lines="skip")
 
+        cols = ["topic_llm", "postura", "pertinencia"]
+        for col in cols:
+            if col not in df.columns:
+                print(f"   ⏳ {archivo_analizado.name}: sin columna '{col}'. Pendiente.")
+                return True
+
+        vals = df[cols].fillna("").astype(str).apply(lambda s: s.str.strip())
+        mask_pendiente = (vals == "").any(axis=1) | (vals == "nan").any(axis=1)
+        if "relevancia_ia" in df.columns:
+            mask_pendiente = mask_pendiente & (df["relevancia_ia"].fillna("").astype(str).str.strip() == "SI")
+
+        n = int(mask_pendiente.sum())
+        if n:
+            print(f"   ⏳ {archivo_analizado.name}: {n} filas relevantes sin analizar. Pendiente.")
+            return True
+        return False
+    except Exception as e:
+        print(f"   ⚠️ Error leyendo {archivo_analizado.name}: {e}. Se asume pendiente.")
+        return True
+    
 def ejecutar_indicador_aceptacion(db: Session, analysis_slug: str, user):
     """Ejecuta el cálculo de aceptación usando BBDD PostgreSQL."""
     try:

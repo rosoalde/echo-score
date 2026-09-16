@@ -29,7 +29,7 @@ from bbdd.response.user_response import UserResponse
 from seguridad.audit_service import AuditService, EventType, EventResult, ActorType
 
 from generate_report import build_analysis_pdf
-from logica_FORMAT import (
+from logica_FORMAT import (_dataset_tiene_pendientes_llm,
     recalcular_filas_incompletas, backend_analisis, generar_keywords_con_ia,
     calcular_dashboard_base, ejecutar_indicador_aceptacion, read_indicador_aceptacion, asegurar_nubes_dashboard,
     recalcular_aceptacion_filtrada, filtrar_y_recalcular_dashboard,
@@ -512,13 +512,22 @@ def aux_mis_analisis(user: UserResponse):
             created_str = "Fecha desconocida"
 
         folder_name = Path(a.get("output_folder")).name if a.get("output_folder") else a.get("project_name")
+        status_val = a.get("status", "completed")
+        if status_val == "cancelled" and a.get("output_folder"):
+            carpeta = Path(a.get("output_folder"))
+            if carpeta.is_dir():
+                sin_scoreop = not (carpeta / "scoreop_consolidado.csv").exists()
+                hay_datos = bool(list(carpeta.glob("*_global_dataset.csv")) or list(carpeta.glob("*_analizado.csv")))
+                if sin_scoreop and hay_datos:
+                    status_val = "processing"
+
         user_analyses.append({
             "id":           a.get("id"),
             "project_name": folder_name,
             "created_at":   created_str,
             "order_by":     created_dt,
-            "status":       a.get("status", "completed"),
-            "progress":     100 if a.get("status") == "completed" else 0,
+            "status":       status_val,
+            "progress":     100 if status_val == "completed" else 0,
             "download_url": f"/analisis/{a.get('id')}/download",
         })
 

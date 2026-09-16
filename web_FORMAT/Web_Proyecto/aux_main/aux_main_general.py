@@ -550,13 +550,25 @@ def get_analyses_for_user(db: Session, user_id: int):
     result = []
     for a in analyses_query:
         progress = a.progress_percent if a.progress_percent is not None else 0
+        status_str = a.status.value if hasattr(a.status, "value") else str(a.status)
+        tarea_activa = False
+        puede_reanudar = False
+        if status_str == "cancelled":
+            tarea_activa = any(
+                t.status in (TaskStatus.PENDING, TaskStatus.QUEUED, TaskStatus.RUNNING)
+                for t in TaskService.get_tasks_by_analysis(db, a.id)
+            )
+            if not tarea_activa and a.output_folder:
+                puede_reanudar = hay_trabajo_pendiente(Path(a.output_folder))
         result.append({
             "id":               a.id,
             "project_name":     a.project_name,
             "project_name_slug": a.slug,
             "created_at":       a.created_at.strftime("%d-%m-%Y %H:%M") if a.created_at else None,
             "order_by":         a.created_at,
-            "status":           a.status.value if hasattr(a.status, "value") else str(a.status),
+            "status":           status_str,
+            "tarea_activa":     tarea_activa,
+            "puede_reanudar":   puede_reanudar,
             "progress":         progress,
             "download_url":     f"/analisis/{a.id}/download",
         })
@@ -628,6 +640,19 @@ def aux_analysis_by_id_slug(db: Session, analysis_id: str, user: UserResponse, c
         raise HTTPException(status_code=404, detail="Análisis no encontrado")
     return analysis
 
+def hay_trabajo_pendiente(folder: Path) -> bool:
+    """True si algún *_global_dataset.csv no tiene *_analizado.csv, o si lo
+    tiene pero con filas sin analizar. Única fuente de verdad — la usan
+    aux_dashboard_data y get_analyses_for_user."""
+    from clean_project.vllm.vllm_sentiment_topic_new import contar_filas_pendientes
+    for ds in folder.glob("*_global_dataset.csv"):
+        analizado = ds.with_name(ds.stem + "_analizado.csv")
+        if not analizado.exists():
+            return True
+        n_pend, _ = contar_filas_pendientes(analizado)
+        if n_pend != 0:
+            return True
+    return False
 
 # =============================================================================
 # aux_dashboard_data  (con lógica ScoreOP completa)
@@ -665,16 +690,7 @@ def aux_dashboard_data(db: Session, analysis_id_slug: str, current_user):
         datasets   = list(folder.glob("*_global_dataset.csv"))
         analizados = list(folder.glob("*_analizado.csv"))
         if datasets or analizados:
-            from clean_project.vllm.vllm_sentiment_topic_new import contar_filas_pendientes
-            hay_filas_pendientes = False
-            for ds in datasets:
-                analizado = ds.with_name(ds.stem + "_analizado.csv")
-                if not analizado.exists():
-                    hay_filas_pendientes = True
-                    continue
-                n_pend, _ = contar_filas_pendientes(analizado)
-                if n_pend != 0:
-                    hay_filas_pendientes = True
+            hay_filas_pendientes = hay_trabajo_pendiente(folder)
 
             todas_tareas = TaskService.get_tasks_by_analysis(db, analysis.id)
             hay_tarea_activa = any(

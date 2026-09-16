@@ -12,7 +12,7 @@ from bbdd.response.user_response import UserResponse
 
 
 from bbdd.database import SessionLocal
-from bbdd.models_all import Analysis, AnalysisTask, TaskStatus
+from bbdd.models_all import Analysis, AnalysisStatus, AnalysisTask, TaskStatus
 from datetime import datetime
 from aux_main.task_service import TaskService
 import time
@@ -72,6 +72,9 @@ def reanudar_analisis_pendiente_task(self, analysis_id: int, task_id: int):
                                        error_message="Análisis no encontrado")
             return
 
+        analysis.status = AnalysisStatus.ACTIVE
+        db.commit()
+
         u_conf = crear_config_dinamica(analysis.analysis_config or {})
         u_conf.general["output_folder"] = str(Path(analysis.output_folder or u_conf.general.get("output_folder", "")).resolve())
         output_folder_path = Path(u_conf.general["output_folder"])
@@ -94,9 +97,13 @@ def reanudar_analisis_pendiente_task(self, analysis_id: int, task_id: int):
                 with open(output_folder_path / "dashboard_data.json", "w", encoding="utf-8") as f:
                     json.dump(dashboard_base, f, indent=2, default=str)
 
+        analysis.status = AnalysisStatus.COMPLETED
+        db.commit()
         TaskService.update_status(db=db, task_id=task_id, status=TaskStatus.COMPLETED,
                                    message="Análisis reanudado ✓", progress_percent=100)
     except Exception as e:
+        analysis.status = AnalysisStatus.ERROR
+        db.commit()
         TaskService.update_status(db=db, task_id=task_id, status=TaskStatus.FAILED,
                                    error_message=str(e))
         raise

@@ -45,31 +45,27 @@
 
                     <div class="btn-group shadow-sm">
                         <a href="/analizar-datasets?project_id={{ a.project_url }}"
-                           class="btn btn-outline-primary btn-sm fw-bold d-flex align-items-center">
+                            class="btn btn-outline-primary btn-sm fw-bold d-flex align-items-center">
                             <i class="bi bi-bar-chart-line me-1"></i> Ir al Dashboard
                         </a>
 
-                        <a href="/analisis/{{ a.id }}/download"
-                           class="btn btn-outline-primary btn-sm d-flex align-items-center justify-content-center px-3
-                           {{ 'disabled' if user.role not in ['admin', 'analista'] }}"
-                           {% if user.role not in ['admin', 'analista'] %} 
-                               onclick="return false;" 
-                               tabindex="-1" 
-                               aria-disabled="true"
-                           {% endif %}>
+                        <a href="/analisis/{{ a.id }}/download" class="btn btn-outline-primary btn-sm d-flex align-items-center justify-content-center px-3
+                           {{ 'disabled' if user.role not in ['admin', 'analista'] }}" {% if user.role not in
+                            ['admin', 'analista' ] %} onclick="return false;" tabindex="-1" aria-disabled="true" {%
+                            endif %}>
                             <i class="bi bi-download"></i>
                         </a>
 
                         <button class="btn btn-outline-danger btn-sm delete-analysis-btn d-flex align-items-center justify-content-center px-3
                                 {{ 'disabled' if user.role not in ['admin', 'analista'] }}"
-                                data-slug="{{ a.project_url }}"
-                                {% if user.role not in ['admin', 'analista'] %} disabled {% endif %}>
+                            data-slug="{{ a.project_url }}" {% if user.role not in ['admin', 'analista' ] %} disabled {%
+                            endif %}>
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
                 </div>
 
-                {% elif a.status == "cancelled" %}
+                {% elif a.status == "cancelled" and not a.tarea_activa %}
                 {% set progress = a.progress if a.progress is defined else 0 %}
 
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -84,12 +80,17 @@
                 <div class="progress progress-sm mb-3" data-analysis-id="{{ a.id }}" data-progress="{{ progress }}">
                     <div class="progress-bar progress-bar-striped progress-bar-animated"></div>
                 </div>
-                <div class="d-flex justify-content-end align-items-center">
+                <div class="d-flex justify-content-end align-items-center gap-2">
+                    {% if a.puede_reanudar and user.role in ['admin', 'analista'] %}
+                    <button class="btn btn-outline-primary btn-sm resume-analysis-btn" data-slug="{{ a.project_url }}">
+                        <i class="bi bi-play-fill me-1"></i> Reanudar análisis
+                    </button>
+                    {% endif %}
                     <div class="btn-group shadow-sm">
                         <button class="btn btn-outline-danger btn-sm delete-analysis-btn d-flex align-items-center justify-content-center px-3
                                 {{ 'disabled' if user.role not in ['admin', 'analista'] }}"
-                                data-slug="{{ a.project_url }}"
-                                {% if user.role not in ['admin', 'analista'] %} disabled {% endif %}>
+                            data-slug="{{ a.project_url }}" {% if user.role not in ['admin', 'analista' ] %} disabled {%
+                            endif %}>
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
@@ -102,16 +103,17 @@
                     <span class="badge-processing">
                         <i class="bi bi-arrow-repeat me-1 spin-icon"></i> Procesando
                     </span>
-                    <span class="fw-bold text-primary small pct-badge" data-analysis-id="{{ a.id }}">{{ progress }}%</span>
+                    <span class="fw-bold text-primary small pct-badge" data-analysis-id="{{ a.id }}">{{ progress
+                        }}%</span>
                 </div>
 
-                <div class="progress progress-sm" data-analysis-id="{{ a.id }}" data-progress="{{ progress }}" data-status="{{ a.status }}">
+                <div class="progress progress-sm" data-analysis-id="{{ a.id }}" data-progress="{{ progress }}"
+                    data-status="{{ a.status }}">
                     <div class="progress-bar progress-bar-striped progress-bar-animated"></div>
                 </div>
 
                 <div class="text-end mt-3">
-                    <button class="btn btn-sm text-danger abort-analysis-btn"
-                            data-id="{{ a.id }}">
+                    <button class="btn btn-sm text-danger abort-analysis-btn" data-id="{{ a.id }}">
                         Cancelar
                     </button>
                 </div>
@@ -136,47 +138,58 @@
 <script src="{{ url_for('static', path='analisis.js') }}"></script>
 
 <style>
-/* Barra lateral */
-.status-bar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 5px;
-}
-.status-completed { background: #22c55e; }
-.status-processing { background: #6366f1; }
+    /* Barra lateral */
+    .status-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 5px;
+    }
 
-/* Badges */
-.badge-completed {
-    background: #dcfce7;
-    color: #166534;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: .75rem;
-}
-.badge-processing {
-    background: #eef2ff;
-    color: #3730a3;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: .75rem;
-}
+    .status-completed {
+        background: #22c55e;
+    }
 
-/* Progress */
-.progress-sm {
-    height: 6px;
-}
-.progress-sm .progress-bar {
-    width: 0%;
-}
+    .status-processing {
+        background: #6366f1;
+    }
 
-/* Spin */
-.spin-icon {
-    animation: spin 2s linear infinite;
-}
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
+    /* Badges */
+    .badge-completed {
+        background: #dcfce7;
+        color: #166534;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: .75rem;
+    }
+
+    .badge-processing {
+        background: #eef2ff;
+        color: #3730a3;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: .75rem;
+    }
+
+    /* Progress */
+    .progress-sm {
+        height: 6px;
+    }
+
+    .progress-sm .progress-bar {
+        width: 0%;
+    }
+
+    /* Spin */
+    .spin-icon {
+        animation: spin 2s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
 </style>
 {% endblock %}

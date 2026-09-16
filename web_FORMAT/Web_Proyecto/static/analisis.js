@@ -4,13 +4,13 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".progress-sm[data-analysis-id]").forEach(container => {
         const analysisId = container.dataset.analysisId;
         if (!analysisId) return;
-        
-        // Si ya viene cancelado del servidor originalmente, no abrimos conexión SSE
-        if (container.dataset.status === "cancelled") {
-            return;
-        }
 
-        const bar   = container.querySelector(".progress-bar");
+        // // Si ya viene cancelado del servidor originalmente, no abrimos conexión SSE
+        // if (container.dataset.status === "cancelled") {
+        //     return;
+        // }
+
+        const bar = container.querySelector(".progress-bar");
         const badge = document.querySelector(`.pct-badge[data-analysis-id="${analysisId}"]`);
 
         const initialPct = parseFloat(container.dataset.progress) || 0;
@@ -19,13 +19,13 @@ document.addEventListener("DOMContentLoaded", () => {
             bar.setAttribute("aria-valuenow", initialPct);
         }
 
-        let lastPct   = initialPct;
+        let lastPct = initialPct;
         let completed = false;
         let reconnectTimeout = null;
 
         function connectSSE() {
             if (completed) return;
-            
+
             if (container._evtSource) {
                 container._evtSource.close();
             }
@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     clearTimeout(reconnectTimeout);
                     return;
                 }
-                
+
                 if (esError && (estado.paso === "error" || estado.paso === "failed")) {
                     completed = true;
                     if (container._evtSource) container._evtSource.close();
@@ -96,10 +96,23 @@ document.addEventListener("DOMContentLoaded", () => {
         connectSSE();
     });
 
+    /* ===== REANUDAR ANÁLISIS ===== */
+    document.querySelectorAll(".resume-analysis-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const slug = btn.dataset.slug;
+            if (!slug) return;
+            btn.disabled = true;
+            btn.innerText = "Reanudando…";
+            fetch(`/analisis/${slug}/reanudar`, { method: "POST" })
+                .then(() => location.reload())
+                .catch(() => { btn.disabled = false; btn.innerText = "Reanudar análisis"; });
+        });
+    });
+
     /* ===== CANCELAR ANÁLISIS ===== */
     document.querySelectorAll(".abort-analysis-btn").forEach(btn => {
         btn.addEventListener("click", () => {
-            const id = btn.dataset.id; 
+            const id = btn.dataset.id;
             if (!id) return;
             if (!confirm("¿Seguro que quieres cancelar este análisis?")) return;
 
@@ -107,9 +120,9 @@ document.addEventListener("DOMContentLoaded", () => {
             btn.innerText = "Cancelando...";
 
             fetch(`/analisis/${id}/detener`, { method: "POST" })
-                .then(res => { 
-                    if (!res.ok) throw new Error(); 
-                    
+                .then(res => {
+                    if (!res.ok) throw new Error();
+
                     // Cerramos el SSE de esta tarjeta antes de irnos por si acaso
                     const container = document.querySelector(`.progress-sm[data-analysis-id="${id}"]`);
                     if (container && container._evtSource) {
@@ -131,8 +144,8 @@ document.addEventListener("DOMContentLoaded", () => {
     /* ===== ELIMINAR ANÁLISIS ===== */
     document.querySelectorAll(".delete-analysis-btn").forEach(btn => {
         btn.addEventListener("click", () => {
-            const slug = btn.dataset.slug; 
-            const card = btn.closest('.card'); 
+            const slug = btn.dataset.slug;
+            const card = btn.closest('.card');
             const progressContainer = card ? card.querySelector(".progress-sm") : null;
 
             if (!slug) return;

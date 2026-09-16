@@ -27,14 +27,25 @@ async function reloadSidebarProjects() {
                 a.classList.add("active", "bg-primary", "text-white");
             }
 
-            a.href = `/analizar-datasets?project_id=${proj.project_url}`;
-
-            a.innerHTML = `
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-file-earmark-bar-graph me-2 text-secondary"></i>
-                    <span class="text-truncate">${proj.project_name}</span>
-                </div>
-            `;
+            if (proj.status !== "completed") {
+                a.classList.add("disabled");
+                a.removeAttribute("href");
+                a.style.cursor = "default";
+                a.innerHTML = `
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-truncate"><i class="bi bi-hourglass-split me-2 text-warning"></i>${proj.project_name}</span>
+                        <span class="badge bg-warning text-dark ms-2" style="font-size:.6rem;">${proj.progress}%</span>
+                    </div>
+                `;
+            } else {
+                a.href = `/analizar-datasets?project_id=${proj.project_url}`;
+                a.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-file-earmark-bar-graph me-2 text-secondary"></i>
+                        <span class="text-truncate">${proj.project_name}</span>
+                    </div>
+                `;
+            }
 
             sidebarList.appendChild(a);
         });
@@ -60,14 +71,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Sidebar Toggle (Corregido con el ID real de tu HTML: #sidebar-wrapper)
     const toggleBtn = document.querySelector("#sidebarToggle");
-    const sidebar = document.querySelector("#sidebar-wrapper"); 
+    const sidebar = document.querySelector("#sidebar-wrapper");
 
     if (toggleBtn && sidebar) {
         toggleBtn.addEventListener("click", () => {
             sidebar.classList.toggle("collapse");
         });
     }
-    
+
     // Forzamos la ejecución de la carga de proyectos
     console.log("Iniciando carga de proyectos en el sidebar...");
     await reloadSidebarProjects();

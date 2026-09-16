@@ -144,6 +144,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     ? "🧠 Analizando contenido con IA…"
                     : "📊 Calculando…";
 
+                if (data.puede_reanudar) {
+                    fetch("/analisis/" + analysisId + "/reanudar", { method: "POST" })
+                        .catch(function (e) { console.warn("No se pudo solicitar la reanudación:", e.message); });
+                }
+
                 chartsContainer.classList.add("d-none");
                 resultsPlaceholder.classList.remove("d-none");
                 resultsPlaceholder.innerHTML = `

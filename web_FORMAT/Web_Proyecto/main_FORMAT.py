@@ -808,12 +808,14 @@ def mis_analisis(request: Request, current_user: UserResponse = Depends(get_curr
         analyses = get_analyses_for_user(db, current_user.id)
         result = [
             {
-                "id":           a["id"],
-                "project_name": a["project_name"],
-                "project_url":  a["project_name_slug"],
-                "status":       a["status"],
-                "progress":     a["progress"],
-                "download_url": a["download_url"]
+                "id":             a["id"],
+                "project_name":   a["project_name"],
+                "project_url":    a["project_name_slug"],
+                "status":         a["status"],
+                "progress":       a["progress"],
+                "download_url":   a["download_url"],
+                "tarea_activa":   a["tarea_activa"],
+                "puede_reanudar": a["puede_reanudar"],
             }
             for a in analyses
         ]

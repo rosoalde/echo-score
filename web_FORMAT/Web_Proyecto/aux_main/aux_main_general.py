@@ -554,10 +554,13 @@ def get_analyses_for_user(db: Session, user_id: int):
         tarea_activa = False
         puede_reanudar = False
         if status_str == "cancelled":
+            tareas_analisis = TaskService.get_tasks_by_analysis(db, a.id)
             tarea_activa = any(
                 t.status in (TaskStatus.PENDING, TaskStatus.QUEUED, TaskStatus.RUNNING)
-                for t in TaskService.get_tasks_by_analysis(db, a.id)
+                for t in tareas_analisis
             )
+            if tareas_analisis and tareas_analisis[0].progress_percent is not None:
+                progress = tareas_analisis[0].progress_percent
             if not tarea_activa and a.output_folder:
                 puede_reanudar = hay_trabajo_pendiente(Path(a.output_folder))
         result.append({

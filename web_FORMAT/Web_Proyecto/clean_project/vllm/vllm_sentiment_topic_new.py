@@ -901,13 +901,19 @@ def llm_analysis(u_conf):
             continue
         
         print(f"\n=== Procesando: {archivo.name} ({red_social}) ===")
-        
+
+        # Si ya existe un _analizado.csv de una ejecución anterior, reanudar
+        # desde ahí (contiene las filas ya resueltas). Si no existe, usar el
+        # dataset original (primera ejecución).
+        analizado_previo = archivo.with_name(archivo.stem + "_analizado.csv")
+        fuente = analizado_previo if analizado_previo.exists() else archivo
+
         # Cargar DataFrame
         try:
-            with open(archivo, 'r', encoding='utf-8') as f:
+            with open(fuente, 'r', encoding='utf-8') as f:
                 sep = ';' if ';' in f.readline() else ','
             
-            df = pd.read_csv(archivo, sep=sep, encoding='utf-8', 
+            df = pd.read_csv(fuente, sep=sep, encoding='utf-8', 
                            engine='python', on_bad_lines='skip')
             
             # Limpiar filas vacías

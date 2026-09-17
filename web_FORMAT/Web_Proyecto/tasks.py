@@ -78,12 +78,15 @@ def reanudar_analisis_pendiente_task(self, analysis_id: int, task_id: int):
         output_folder_path = Path(analysis.output_folder).resolve()
         u_conf = crear_config_dinamica(analysis.analysis_config or {}, existing_output_folder=str(output_folder_path))
 
-        def _reportar(procesadas, total, archivo):
-            pct = int(procesadas / total * 100) if total else 0
-            TaskService.update_status(db=db, task_id=task_id, status=TaskStatus.RUNNING,
-                                       message=f"Analizando {archivo}: {procesadas}/{total}",
-                                       progress_percent=pct)
-        relanzar_llm_si_pendiente(u_conf, on_progress=_reportar)
+        def _reportar_progreso_llm(dataset_name, hechos, total):
+            pct = 5 + int(85 * hechos / total) if total else 5
+            TaskService.update_status(
+                db=db, task_id=task_id, status=TaskStatus.RUNNING,
+                message=f"Analizando {dataset_name}: {hechos}/{total}",
+                progress_percent=pct,
+            )
+
+        relanzar_llm_si_pendiente(u_conf, on_progress=_reportar_progreso_llm)
 
         from clean_project.analysis.scoreop_calculator import ejecutar_scoreop_desde_logica
         from clean_project.analysis.first_report import cargar_datos_para_reporte, generar_excel_sentimiento

@@ -1821,7 +1821,10 @@ async def backend_analisis(db: Session, data, analysis_id, task_id):
     # ── LLM ANALYSIS ──────────────────────────────────────────────────
     _set_progress(task_id, db, "sentiment", "Analizando con IA…", 52)
     try:
-        vllm_sentiment_analysis(u_conf, on_progress=on_progress)
+        def _reportar_progreso_llm(dataset_name, hechos, total):
+            pct = 52 + int(13 * hechos / total) if total else 52
+            _set_progress(task_id, db, "sentiment_progreso", f"Analizando {dataset_name}: {hechos}/{total}", pct)
+        vllm_sentiment_analysis(u_conf, on_progress=_reportar_progreso_llm)
         _set_progress(task_id, db, "sentiment_ok", "Análisis de sentimiento OK ✓", 65)
     except Exception as e:
         print(f"❌ Error LLM: {e}")

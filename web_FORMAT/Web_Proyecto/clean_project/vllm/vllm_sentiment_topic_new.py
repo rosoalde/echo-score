@@ -1017,8 +1017,8 @@ def llm_analysis(u_conf, on_progress=None):
             if on_progress:
                 try:
                     on_progress(procesadas=min(i + len(batch_indices), pendientes), total=pendientes, archivo=archivo.name)
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"⚠️ on_progress falló: {e}")
         
         print(f"\n✅ {archivo.name} completado")
     

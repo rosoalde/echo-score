@@ -78,11 +78,11 @@ def reanudar_analisis_pendiente_task(self, analysis_id: int, task_id: int):
         output_folder_path = Path(analysis.output_folder).resolve()
         u_conf = crear_config_dinamica(analysis.analysis_config or {}, existing_output_folder=str(output_folder_path))
 
-        def _reportar_progreso_llm(dataset_name, hechos, total):
-            pct = 5 + int(85 * hechos / total) if total else 5
+        def _reportar_progreso_llm(procesadas, total, archivo):
+            pct = 5 + int(85 * procesadas / total) if total else 5
             TaskService.update_status(
                 db=db, task_id=task_id, status=TaskStatus.RUNNING,
-                message=f"Analizando {dataset_name}: {hechos}/{total}",
+                message=f"Analizando {archivo}: {procesadas}/{total}",
                 progress_percent=pct,
             )
 

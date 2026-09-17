@@ -235,6 +235,17 @@ async def verificar_relevancia_vlm(post_data, b64_image, u_conf):
         raw = response.choices[0].message.content
         res, _ = json.JSONDecoder().raw_decode(raw)
         return res.get("relevante", False), res.get("razon_relevancia", "N/A"), res.get("idioma", "Desconocido"), res.get("idioma_justificacion", "N/A")
+    except APIConnectionError as e:
+        print(f"⏸️ Modelo vLLM no disponible ({e}); esperando a que vuelva…")
+        while True:
+            time.sleep(10)
+            try:
+                await client.models.list(timeout=5)
+                break
+            except APIConnectionError:
+                continue
+        print("▶️ Modelo disponible de nuevo, reintentando fila…")
+        return await verificar_relevancia_vlm(post_data, b64_image, u_conf)
     except Exception as e:
         fr = response.choices[0].finish_reason if response else None
         print(f"⚠️ Raw LLM (fallo parseo, finish_reason={fr}): {raw!r} | {e}")

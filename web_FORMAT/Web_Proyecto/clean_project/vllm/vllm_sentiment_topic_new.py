@@ -801,7 +801,8 @@ def call_vllm_worker(contexto, system_prompt, user_template):
             raw = response.choices[0].message.content
             if response.choices[0].finish_reason == "length":
                 print(f"⚠️ Respuesta cortada por límite de tokens "
-                      f"(finish_reason=length, max_tokens={MAX_TOKENS_ANALISIS})")
+                      f"(finish_reason=length, max_tokens={MAX_TOKENS_ANALISIS}); reintentando…")
+                continue
             resultado  = extraer_json_clasificacion(raw)
             
             # Normalizar y consolidar el subtopic (misma lógica de siempre)
@@ -870,7 +871,7 @@ def contar_filas_pendientes(csv_path: Path) -> tuple[int, int]:
 # PIPELINE PRINCIPAL
 # =====================================================
 
-def llm_analysis(u_conf):
+def llm_analysis(u_conf, on_progress=None):
     """
     Análisis principal con soporte multimodal opcional.
     
@@ -975,6 +976,7 @@ def llm_analysis(u_conf):
         analizado_path = archivo.with_name(archivo.stem + "_analizado.csv")
         
         for i in range(0, pendientes, MICRO_BATCH_SIZE):
+
             batch_indices = indices_pendientes[i : i + MICRO_BATCH_SIZE]
             
             print(f"\n  Lote {i//MICRO_BATCH_SIZE + 1} ({len(batch_indices)} items)...")
@@ -1012,6 +1014,11 @@ def llm_analysis(u_conf):
             # Guardar progreso
             df.to_csv(analizado_path, index=False, sep=';', encoding='utf-8')
             print(f"  💾 Guardado")
+            if on_progress:
+                try:
+                    on_progress(procesadas=min(i + len(batch_indices), pendientes), total=pendientes, archivo=archivo.name)
+                except Exception:
+                    pass
         
         print(f"\n✅ {archivo.name} completado")
     

@@ -1648,7 +1648,7 @@ def crear_config_dinamica(data, existing_output_folder=None):
 
 # ================= MAIN BACKEND ANALYSIS =================
 
-def relanzar_llm_si_pendiente(u_conf):
+def relanzar_llm_si_pendiente(u_conf, on_progress=None):
     """
     Si existen *_global_dataset.csv sin su *_analizado.csv correspondiente,
     relanza el análisis LLM SOLO para esos archivos pendientes.
@@ -1696,7 +1696,7 @@ def relanzar_llm_si_pendiente(u_conf):
             print(f"⚠️ No se pudo ocultar {ds.name}: {e}")
 
     try:
-        vllm_sentiment_analysis(u_conf)
+        vllm_sentiment_analysis(u_conf, on_progress=on_progress)
         return True
     except Exception as e:
         print(f"❌ Error relanzando LLM: {e}")
@@ -1821,12 +1821,12 @@ async def backend_analisis(db: Session, data, analysis_id, task_id):
     # ── LLM ANALYSIS ──────────────────────────────────────────────────
     _set_progress(task_id, db, "sentiment", "Analizando con IA…", 52)
     try:
-        vllm_sentiment_analysis(u_conf)
+        vllm_sentiment_analysis(u_conf, on_progress=on_progress)
         _set_progress(task_id, db, "sentiment_ok", "Análisis de sentimiento OK ✓", 65)
     except Exception as e:
         print(f"❌ Error LLM: {e}")
         try:
-            if relanzar_llm_si_pendiente(u_conf):
+            if relanzar_llm_si_pendiente(u_conf, on_progress=on_progress):
                 _set_progress(task_id, db, "sentiment_ok", 
                             "Análisis completado (reintento) ✓", 65)
             else:

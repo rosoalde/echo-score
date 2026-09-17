@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import Optional
 
 import pandas as pd
-from openai import OpenAI
+from openai import OpenAI, APIConnectionError
 
 from clean_project.vllm.model_config import MODELO_ACTIVO, LLM_KWARGS, MAX_TOKENS_GATEKEEPER
 
@@ -46,6 +46,7 @@ client = OpenAI(
     base_url="http://host.docker.internal:8001/v1",
     api_key="local-token",
     timeout=600.0,
+    max_retries=0,
 )
 MODEL_NAME = MODELO_ACTIVO
 BATCH_SIZE = 80
@@ -193,6 +194,17 @@ def _worker_geo(idx: int, texto: str, termino: str) -> tuple[int, Optional[int]]
         if m:
             return idx, int(m.group(1))
         return idx, 1 if "1" in raw else 0
+    except APIConnectionError as e:
+        print(f"⏸️ Modelo vLLM no disponible ({e}); esperando a que vuelva…")
+        while True:
+            time.sleep(10)
+            try:
+                client.models.list(timeout=5)
+                break
+            except APIConnectionError:
+                continue
+        print("▶️ Modelo disponible de nuevo, reintentando…")
+        return _worker_geo(idx, texto, termino)
     except Exception as exc:
         print(f"  ❌ geo idx={idx}: {exc}")
         return idx, None
@@ -228,6 +240,17 @@ def _worker_topic(
             val = int(m2.group(0))
             return idx, val if val in {-1, 0, 1, 2} else 2
         return idx, 2
+    except APIConnectionError as e:
+        print(f"⏸️ Modelo vLLM no disponible ({e}); esperando a que vuelva…")
+        while True:
+            time.sleep(10)
+            try:
+                client.models.list(timeout=5)
+                break
+            except APIConnectionError:
+                continue
+        print("▶️ Modelo disponible de nuevo, reintentando…")
+        return _worker_topic(idx, texto, argumento, tema)
     except Exception as exc:
         print(f"  ❌ topic idx={idx}: {exc}")
         return idx, None

@@ -10,7 +10,7 @@ import base64
 from pathlib import Path
 from datetime import datetime
 import asyncpraw
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, APIConnectionError
 from types import SimpleNamespace
 
 # Configuración de rutas
@@ -25,7 +25,7 @@ from clean_project.vllm.model_config import (
 MODELO_VLM = MODELO_ACTIVO
 
 # PARA DEBUGEAR AISLADO CAMBIAR http://host.docker.internal:8001/v1 POR http://localhost:8001/v1
-client = AsyncOpenAI(base_url="http://host.docker.internal:8001/v1", api_key="local-token")
+client = AsyncOpenAI(base_url="http://host.docker.internal:8001/v1", api_key="local-token",max_retries=0,)
 
 # =====================================================
 # 1. UTILIDADES
@@ -136,6 +136,17 @@ async def verificar_relevancia_vlm_reddit(post, b64_images, u_conf):
         print(res)
         print("="*40)
         return res.get("relevante", False), res.get("razon_relevancia", "N/A"), res.get("idioma", "Desconocido"), res.get("idioma_justificacion", "N/A")
+    except APIConnectionError as e:
+        print(f"⏸️ Modelo vLLM no disponible ({e}); esperando a que vuelva…")
+        while True:
+            await asyncio.sleep(10)
+            try:
+                await client.models.list(timeout=5)
+                break
+            except APIConnectionError:
+                continue
+        print("▶️ Modelo disponible de nuevo, reintentando…")
+        return await verificar_relevancia_vlm_reddit(post, b64_images, u_conf)
     except Exception as e:
         fr = response.choices[0].finish_reason if response else None
         print(f"⚠️ Raw LLM (fallo parseo, finish_reason={fr}): {raw!r}")

@@ -2645,7 +2645,7 @@ def _calcular_posicion_on_demand(
     df con columna 'posicion' rellena
     """
     try:
-        from openai import OpenAI as _OpenAI
+        from openai import OpenAI as _OpenAI, APIConnectionError
         from clean_project.vllm.model_config import MODELO_ACTIVO as _MODEL
     except Exception as e:
         print(f"[POSICION] ⚠️ No se pudo conectar al vLLM: {e}. Usando fallback sent=posicion.")
@@ -2819,6 +2819,17 @@ Responde SOLO con JSON:
                 print(f"  [POSICION] idx={idx} sent={row_data['sentimiento']} "
                       f"→ pos={pos} | {razon}")
                 return (idx, pos)
+            except APIConnectionError as e:
+                print(f"⏸️ Modelo vLLM no disponible ({e}); esperando a que vuelva…")
+                while True:
+                    time.sleep(10)
+                    try:
+                        _client.models.list(timeout=5)
+                        break
+                    except APIConnectionError:
+                        continue
+                print("▶️ Modelo disponible de nuevo, reintentando…")
+                return _procesar_fila(idx)
             except Exception as e:
                 print(f"  [POSICION] ⚠️ idx={idx} intento {intento+1}: {e}")
                 if intento == 1:
@@ -3677,11 +3688,12 @@ def _calcular_coherencia_llm_batch(
 
     # ── Conexión LLM ──────────────────────────────────────────────────────────
     try:
-        from openai import OpenAI
+        from openai import OpenAI, APIConnectionError
         client_coh = OpenAI(
             base_url="http://localhost:8001/v1",
             api_key="local-token",
             timeout=600.0,
+            max_retries=0,
         )
         from clean_project.vllm.model_config import MODELO_ACTIVO
         MODEL_COH = MODELO_ACTIVO
@@ -3752,6 +3764,16 @@ def _calcular_coherencia_llm_batch(
                     print(f"[COH] Lote {i//BATCH} intento {intento}: no se pudo parsear. "
                           f"Raw: {raw[:200]!r}")
 
+            except APIConnectionError as e:
+                print(f"⏸️ Modelo vLLM no disponible ({e}); esperando a que vuelva…")
+                while True:
+                    time.sleep(10)
+                    try:
+                        client_coh.models.list(timeout=5)
+                        break
+                    except APIConnectionError:
+                        continue
+                print("▶️ Modelo disponible de nuevo, reintentando lote…")
             except Exception as e:
                 print(f"[COH] Lote {i//BATCH} intento {intento} excepción: {e}")
 

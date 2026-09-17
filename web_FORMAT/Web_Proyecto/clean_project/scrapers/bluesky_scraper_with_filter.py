@@ -9,7 +9,7 @@ import sys
 import base64
 from pathlib import Path
 from datetime import datetime
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, APIConnectionError
 
 
 # Si es True: se recogen POST (ORIGINAL/AUTENTICO), CITA, COMENTARIO_A_POST y COMENTARIO_A_COMENTARIO.
@@ -238,7 +238,7 @@ async def verificar_relevancia_vlm(post_data, b64_image, u_conf):
     except APIConnectionError as e:
         print(f"⏸️ Modelo vLLM no disponible ({e}); esperando a que vuelva…")
         while True:
-            time.sleep(10)
+            await asyncio.sleep(10)
             try:
                 await client.models.list(timeout=5)
                 break

@@ -11,9 +11,10 @@ from datetime import datetime
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from youtube_transcript_api import YouTubeTranscriptApi
-from openai import OpenAI
+from openai import OpenAI, APIConnectionError
 from io import BytesIO
 import asyncio
+import time
 
 # Configuración de rutas relativas
 ROOT_PATH = Path(__file__).resolve().parents[2]
@@ -29,7 +30,7 @@ MODELO_VLM = MODELO_ACTIVO
 
 # Cliente vLLM
 # PARA DEBUGEAR AISLADO CAMBIAR http://host.docker.internal:8001/v1 POR http://localhost:8001/v1
-client = OpenAI(base_url="http://host.docker.internal:8001/v1", api_key="local-token") 
+client = OpenAI(base_url="http://host.docker.internal:8001/v1", api_key="local-token", max_retries=0,) 
 #MODELO_VLM = "Qwen/Qwen2.5-14B-Instruct-AWQ"#"Qwen/Qwen2.5-VL-7B-Instruct"
 
 # =====================================================
@@ -208,6 +209,17 @@ def verificar_relevancia_vlm(detalles, transcripcion, b64_image, u_conf):
         print(res)
         print("="*40)
         return res.get("relevante", False), res.get("razon", "No se proporcionó razón"), res.get("idioma", "Desconocido"), res.get("idioma_justificacion", "N/A")
+    except APIConnectionError as e:
+        print(f"⏸️ Modelo vLLM no disponible ({e}); esperando a que vuelva…")
+        while True:
+            time.sleep(10)
+            try:
+                client.models.list(timeout=5)
+                break
+            except APIConnectionError:
+                continue
+        print("▶️ Modelo disponible de nuevo, reintentando…")
+        return verificar_relevancia_vlm(detalles, transcripcion, b64_image, u_conf)
     except Exception as e:
         fr = response.choices[0].finish_reason if response else None
         print(f"⚠️ Raw LLM (fallo parseo, finish_reason={fr}): {raw!r}")

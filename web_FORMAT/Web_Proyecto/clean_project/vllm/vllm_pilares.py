@@ -3,7 +3,8 @@ import json
 import base64
 import pandas as pd
 from pathlib import Path
-from openai import OpenAI
+from openai import OpenAI, APIConnectionError
+import time
 from dotenv import load_dotenv
 from tqdm import tqdm
 from types import SimpleNamespace
@@ -32,6 +33,7 @@ client = OpenAI(
     base_url="http://host.docker.internal:8001/v1",
     api_key="local-token",
     timeout=TIMEOUT_LLM,
+    max_retries=0,
 )
 #MODEL_NAME = "Qwen/Qwen2.5-14B-Instruct-AWQ"#"Qwen/Qwen2.5-VL-7B-Instruct" # Qwen3-VL-8B-Instruct pasar a la versión 3 cuando esté disponible y estable
 NUM_CTX = 30000  # Límite de tokens aproximado para el contexto
@@ -701,6 +703,17 @@ def _worker_pilares(idx, texto_preparado, user_template, system_prompt, img_path
             print(f"⚠️ No se encontró JSON (idx={idx}): {respuesta_raw}")
             return idx, None
  
+    except APIConnectionError as e:
+        print(f"⏸️ Modelo vLLM no disponible ({e}); esperando a que vuelva…")
+        while True:
+            time.sleep(10)
+            try:
+                client.models.list(timeout=5)
+                break
+            except APIConnectionError:
+                continue
+        print("▶️ Modelo disponible de nuevo, reintentando…")
+        return _worker_pilares(idx, texto_preparado, user_template, system_prompt, img_path)
     except Exception as e:
         print(f"❌ Error LLM (idx={idx}): {e}")
         return idx, None

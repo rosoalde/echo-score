@@ -882,8 +882,13 @@ def llm_analysis(u_conf, on_progress=None):
     print("\n🚀 ANÁLISIS DE SENTIMIENTO + STANCE (vLLM)")
     
     data_folder = Path(u_conf.general["output_folder"])
-    
-    # Cargar memoria de topics
+
+    # TOPIC_MEMORY es global de módulo: si este worker ya procesó otro
+    # proyecto antes, hay que vaciarlo para no mezclar sus topics con los
+    # de este análisis.
+    TOPIC_MEMORY.clear()
+
+    # Cargar memoria de topics (de este proyecto)
     memory_file = data_folder / "learned_topics.json"
     if memory_file.exists():
         with open(memory_file, "r", encoding="utf-8") as f:
@@ -1013,6 +1018,8 @@ def llm_analysis(u_conf, on_progress=None):
             
             # Guardar progreso
             df.to_csv(analizado_path, index=False, sep=';', encoding='utf-8')
+            with open(memory_file, "w", encoding="utf-8") as f:
+                json.dump(list(TOPIC_MEMORY.keys()), f, ensure_ascii=False, indent=2)
             print(f"  💾 Guardado")
             if on_progress:
                 try:
@@ -1023,8 +1030,8 @@ def llm_analysis(u_conf, on_progress=None):
         print(f"\n✅ {archivo.name} completado")
     
     # Guardar memoria de topics
-    with open(memory_file, "w", encoding="utf-8") as f:
-        json.dump(list(TOPIC_MEMORY.keys()), f, ensure_ascii=False, indent=2)
+    # with open(memory_file, "w", encoding="utf-8") as f:
+    #     json.dump(list(TOPIC_MEMORY.keys()), f, ensure_ascii=False, indent=2)
     
     # Mostrar estadísticas de topics
     print(f"\n📊 TOPICS DETECTADOS ({len(TOPIC_MEMORY)}):")

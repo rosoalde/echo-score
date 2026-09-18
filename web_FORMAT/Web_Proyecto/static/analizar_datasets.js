@@ -3227,8 +3227,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 // 4. La barra ahora es relativa al líder de la lista (UX mucho mejor)
                 var pctBarra = maxWuTEnLista > 0 ? (wuT / maxWuTEnLista) * 100 : 0;
 
-                var nPostsLbl = e.n_posts ? (e.n_posts + (e.n_posts === 1 ? ' post' : ' posts')) : '';
-
                 html +=
                     '<button type="button" class="list-group-item list-group-item-action lex-side-item px-2 py-2" ' +
                     'data-uid="' + _escAttr(esTopico ? n.id : node.id) + '" ' +
@@ -3238,8 +3236,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     '<span class="badge" style="background:' + colE + ';font-size:.6rem;">' + _posLabel(e.Cu_t) + '</span>' +
                     '</div>' +
                     '<div class="d-flex justify-content-between mb-1" style="font-size:.65rem;color:#888;">' +
-                    '<span>Influencia: <strong>' + wuT.toFixed(1) + '</strong></span>' +
-                    '<span>' + nPostsLbl + '</span>' +
+                    '<span>Publicaciones sobre el tema: <strong>' + Math.round(wuT) + '</strong></span>' +
                     '</div>' +
                     '<div class="progress" style="height:4px;background:rgba(0,0,0,0.05);">' +
                     '<div class="progress-bar" style="width:' + pctBarra.toFixed(1) + '%;background:' + colE + ';"></div>' +

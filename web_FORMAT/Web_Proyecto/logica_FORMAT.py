@@ -3875,8 +3875,8 @@ def construir_grafo_bipartito_v2(df_all: pd.DataFrame, top_n_topicos: int = 15, 
 
     # ACUMULADORES
     top_sup: Dict[str, float] = defaultdict(float) # Suma de ScoreOP_sup (Energía real)
-    top_raw: Dict[str, float] = defaultdict(float) # Suma de ScoreOP (Raw real)
-    top_pos: Dict[str, list]  = defaultdict(list)  # Para la sigma (opacidad)
+    top_raw: Dict[str, float] = defaultdict(float) # Suma de ScoreOP (ya no se usa para Ct)
+    top_pares: Dict[str, list] = defaultdict(list) # (sentimiento_del_topic, postura) por post → Ct e Ib_t
     top_cnt: Counter          = Counter()
 
     usr_sup: Dict[str, float] = defaultdict(float)
@@ -3902,7 +3902,7 @@ def construir_grafo_bipartito_v2(df_all: pd.DataFrame, top_n_topicos: int = 15, 
         # Acumular Tópico
         top_sup[topic] += s_sup
         top_raw[topic] += s_raw
-        top_pos[topic].append(pos)
+        top_pares[topic].append((sent, pos))
         top_cnt[topic] += 1
 
         # Acumular Usuario
@@ -3922,11 +3922,11 @@ def construir_grafo_bipartito_v2(df_all: pd.DataFrame, top_n_topicos: int = 15, 
     nodes_topico = []
     for t in topicos_ordenados:
         sup_t = top_sup[t]
-        raw_t = top_raw[t]
-        Ct = raw_t / sup_t if sup_t > 0 else 0.0
-
-        sigma_p = float(np.std(top_pos[t])) if len(top_pos[t]) > 1 else 0.0
-        Ib_t = 1.0 / (1.0 + sigma_p)
+        pares_t = top_pares[t]
+        # Ct = valoración media del aspecto (sentimiento_del_topic), no ScoreOP
+        Ct = sum(s for s, p in pares_t) / len(pares_t) if pares_t else 0.0
+        # Ib_t = coherencia media del tema (misma fórmula que Ib_u, agregada por tema)
+        Ib_t = sum(1.0 - abs(s - p) / 2.0 for s, p in pares_t) / len(pares_t) if pares_t else 0.5
 
         nodes_topico.append({
             "id": f"topico__{t}",
@@ -3940,14 +3940,16 @@ def construir_grafo_bipartito_v2(df_all: pd.DataFrame, top_n_topicos: int = 15, 
     
     nodes_usuario = []
     uids_ordenados = sorted(usr_sup, key=lambda u: usr_sup[u], reverse=True)
+    cu_por_usuario: Dict[str, float] = {}
 
     for uid in uids_ordenados[:max_usuarios]: # Solo limitamos por rendimiento
         sup_u = usr_sup[uid]
-        raw_u = usr_raw[uid]
-        Cu = raw_u / sup_u if sup_u > 0 else 0.0
-        
-        # Coherencia (Alineación)
         pares = usr_stance[uid]
+        # Cu = postura media del usuario (sent_num), no ScoreOP
+        Cu = sum(p for s, p in pares) / len(pares) if pares else 0.0
+        cu_por_usuario[uid] = Cu
+
+        # Coherencia del usuario (antes "Alineación")
         Ib_u = sum(1.0 - abs(s - p)/2.0 for s, p in pares) / len(pares) if pares else 0.5
 
         nodes_usuario.append({
@@ -3966,17 +3968,20 @@ def construir_grafo_bipartito_v2(df_all: pd.DataFrame, top_n_topicos: int = 15, 
     uid_set = {n["id"] for n in nodes_usuario}
     for (uid, topic), s_local in aris_sup.items():
         if uid not in uid_set or topic not in top_sup: continue
-        
-        r_local = aris_raw[(uid, topic)]
-        Cu_t = r_local / s_local if s_local > 0 else 0.0
-        
+
         data_local = aris_data[(uid, topic)]
-        Ib_e = sum(1.0 - abs(s - p)/2.0 for s, p in data_local) / len(data_local)
+        # Wu_t = intensidad = nº de posts de este usuario sobre este tema (antes: Σ ScoreOP_sup)
+        Wu_t = len(data_local)
+        # Cu_t = valoración de este usuario sobre este tema (sentimiento_del_topic), no ScoreOP
+        Cu_t = sum(s for s, p in data_local) / len(data_local)
+        # Ib_e = coherencia entre niveles: ¿esta valoración concreta encaja con la postura
+        # general de este mismo usuario? (Opción 2)
+        Ib_e = 1.0 - abs(Cu_t - cu_por_usuario.get(uid, 0.0)) / 2.0
 
         edges.append({
             "source": uid,
             "target": f"topico__{topic}",
-            "Wu_t": round(s_local, 4),
+            "Wu_t": round(Wu_t, 4),
             "Cu_t": round(Cu_t, 4),
             "Ib_e": round(max(0.15, Ib_e), 4),
             "n_posts": len(data_local),

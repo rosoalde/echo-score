@@ -3868,6 +3868,19 @@ def construir_grafo_bipartito_v2(df_all: pd.DataFrame, top_n_topicos: int = 15, 
         print("[DEBUG-GRAFO] ⚠️ No hay posts después de filtrar por tipo y sentimiento.")
         return {"nodes": [], "edges": []}
 
+    # ScoreOP_sup se calibra de forma independiente en cada plataforma (pesos
+    # dinámicos y factor de alcance propios). Con una sola plataforma se deja
+    # el valor tal cual (comportamiento actual, sin cambios). Con "Todas las
+    # plataformas" cada post pasa a expresarse como fracción de su propio
+    # máximo de plataforma (0-1), para que sumar entre plataformas sea válido.
+    sup_bruto = pd.to_numeric(posts.get("ScoreOP_sup", 1.0), errors="coerce").fillna(1.0)
+    if posts["plataforma"].astype(str).nunique() > 1:
+        max_por_plataforma = sup_bruto.groupby(posts["plataforma"].astype(str)).transform("max")
+        posts["_sup_comparable"] = np.where(max_por_plataforma > 0, sup_bruto / max_por_plataforma, 0.0)
+    else:
+        posts["_sup_comparable"] = sup_bruto
+
+
     print(f"\n[DEBUG-GRAFO] Procesando {len(posts)} posts.")
     print(f"[DEBUG-GRAFO] Columnas disponibles: {posts.columns.tolist()}")
     sample = posts[['sent_topic', 'sent_num', 'ScoreOP', 'ScoreOP_sup']].head(3)
@@ -3893,8 +3906,8 @@ def construir_grafo_bipartito_v2(df_all: pd.DataFrame, top_n_topicos: int = 15, 
         if topic in EXCLUIR_TOPICS: continue
         
         uid = str(row.get("id_anonimo", "DESCONOCIDO"))
-        # USAR VALORES REALES DEL CSV
-        s_sup = _safe_float(row.get("ScoreOP_sup", 1.0))
+        # USAR VALORES REALES DEL CSV (comparables entre plataformas cuando aplica)
+        s_sup = _safe_float(row.get("_sup_comparable", 1.0))
         s_raw = _safe_float(row.get("ScoreOP", 0.0))
         pos   = int(_safe_float(row.get("sent_num", 0)))
         sent  = int(_safe_float(row.get("sent_topic", 0)))

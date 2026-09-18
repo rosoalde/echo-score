@@ -2090,9 +2090,9 @@ document.addEventListener("DOMContentLoaded", () => {
                         ";color:#fff;font-size:10px;padding:1px 6px;border-radius:4px;'>" +
                         (d.tipo === "bigrama" ? "Frase" : "Palabra") + "</span>" +
                         "<hr style='margin:5px 0;opacity:.2;'>" +
-                        "<span style='color:#aaa;'>Relevancia:</span> <strong>" + d.Sb.toFixed(1) + "</strong><br>" +
-                        "<span style='color:#aaa;'>Postura:</span> <strong>" + _posLabel(d.Cb) + "</strong><br>" +
-                        "<span style='color:#aaa;'>Alineación:</span> <strong>" + Math.round(d.Ib * 100) + "%</strong><br>" +
+                        "<span style='color:#aaa;'>Impacto:</span> <strong>" + d.Sb.toFixed(1) + "</strong><br>" +
+                        "<span style='color:#aaa;'>Tono:</span> <strong>" + _posLabel(d.Cb) + "</strong><br>" +
+                        "<span style='color:#aaa;'>Coherencia:</span> <strong>" + Math.round(d.Ib * 100) + "%</strong><br>" +
                         "<span style='color:#aaa;'>Menciones:</span> " + d.Nb
                     );
                     this.style.opacity = "1";

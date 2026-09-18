@@ -3803,6 +3803,18 @@ def construir_nube_unificada_v2(df_all: pd.DataFrame, keywords: List[str] = None
     posts = df_all[df_all["tipo_norm"].isin(TIPOS_POST) & (df_all["sent_num"] != 2)].copy()
     if posts.empty: return []
 
+    # ScoreOP_sup y ScoreOP se calibran por separado en cada plataforma. Con una
+    # sola plataforma no cambia nada. Con "Todas las plataformas" cada post se
+    # escala por 1/máximo de su propia plataforma: no altera el ScoreOP_norm de
+    # ningún post (numerador y denominador se escalan igual, se cancela), pero
+    # hace comparable tanto Sb (suma) como Cb (ratio ponderado) entre plataformas.
+    sup_bruto = pd.to_numeric(posts.get("ScoreOP_sup", 1.0), errors="coerce").fillna(1.0)
+    if posts["plataforma"].astype(str).nunique() > 1:
+        max_por_plataforma = sup_bruto.groupby(posts["plataforma"].astype(str)).transform("max")
+        posts["_factor_plat"] = np.where(max_por_plataforma > 0, 1.0 / max_por_plataforma, 0.0)
+    else:
+        posts["_factor_plat"] = 1.0
+
     # Acumuladores
     t_sup: Dict[str, float] = defaultdict(float)
     t_raw: Dict[str, float] = defaultdict(float)
@@ -3811,8 +3823,9 @@ def construir_nube_unificada_v2(df_all: pd.DataFrame, keywords: List[str] = None
     t_cnt: Counter = Counter()
 
     for _, row in posts.iterrows():
-        sup_i = _safe_float(row.get("ScoreOP_sup", 1.0))
-        raw_i = _safe_float(row.get("ScoreOP", 0.0))
+        factor = _safe_float(row.get("_factor_plat", 1.0), default=1.0)
+        sup_i = _safe_float(row.get("ScoreOP_sup", 1.0)) * factor
+        raw_i = _safe_float(row.get("ScoreOP", 0.0)) * factor
         pos   = int(_safe_float(row.get("sent_num", 0)))
         sent  = int(_safe_float(row.get("sent_topic", 0)))
         

@@ -553,7 +553,7 @@ def get_analyses_for_user(db: Session, user_id: int):
         status_str = a.status.value if hasattr(a.status, "value") else str(a.status)
         tarea_activa = False
         puede_reanudar = False
-        if status_str == "cancelled":
+        if status_str in ("cancelled", "active"):
             tareas_analisis = TaskService.get_tasks_by_analysis(db, a.id)
             ultima_tarea = tareas_analisis[0] if tareas_analisis else None
             tarea_activa = ultima_tarea is not None and ultima_tarea.status in (
